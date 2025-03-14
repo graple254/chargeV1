@@ -51,8 +51,9 @@ def verify_email_code(request):
         timestamp = request.session.get("email_verification_timestamp")
 
         # Check if the code is expired (5-minute limit)
-        if not stored_code or not timestamp or time.time() - timestamp > 300:
-            return JsonResponse({"status": False, "error": "Verification code expired. Request a new one."})
+        if not stored_code:
+            return JsonResponse({"status": False, "error": "No verification code found. Request a new one."})
+
 
         if stored_code == code_entered:
             request.session["verified_email"] = request.session["email_verification_address"]

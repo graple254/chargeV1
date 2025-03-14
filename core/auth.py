@@ -44,14 +44,7 @@ def register_user(username, email, phone_number, role, password, confirm_passwor
     # ✅ Return only serializable user data
     return {
         "status": True,
-        "message": "User registered successfully",
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "phone_number": user.phone_number,
-            "role": user.role,
-        },
+        "user": user.username
     }
 
 
