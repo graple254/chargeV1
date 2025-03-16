@@ -71,19 +71,15 @@ class ListerProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
-    list_display = ('make', 'model', 'year', 'price_per_day', 'lister', 'available')
+    list_display = ('make', 'model', 'price_per_day', 'lister', 'available')
     search_fields = ('make', 'model', 'lister__company_name')
-    list_filter = ('available', 'year')
+    list_filter = ('available', 'lister__company_name')
 
 
 @admin.register(CarImage)
 class CarImageAdmin(admin.ModelAdmin):
     list_display = ('car', 'image')
 
-
-@admin.register(CarFeature)
-class CarFeatureAdmin(admin.ModelAdmin):
-    list_display = ('feature_name', 'car')
 
 
 @admin.register(CarAvailability)

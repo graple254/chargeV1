@@ -95,9 +95,9 @@ class ReviewComment(models.Model):
 class ListerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='lister_profile')
     company_name = models.CharField(max_length=255, blank=True, null=True)
-    company_logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
     contact_email = models.EmailField(unique=True, blank=True, null=True)
     contact_phone = models.CharField(max_length=15, unique=True, blank=True, null=True)
+    whatsapp_number = models.CharField(max_length=15, blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     verified = models.BooleanField(default=False, blank=True, null=True)
 
@@ -107,10 +107,35 @@ class ListerProfile(models.Model):
 
 # Car - Represents a car listed for rent
 class Car(models.Model):
+    VEHICLE_TYPE = (
+        ('Minivan', 'Minivan'),
+        ('SUV', 'Suv'),
+        ('SMALL CAR', 'Small Car'),
+        ('Medium Car', 'Medium Car'),
+        ('Pickup Truck', 'Pickup Truck'),
+        ('Luxury', 'Luxury'),
+        ('Van/Bus', 'Van/Bus'),
+        ('Electric car', 'Electric car'),
+    )
+    PASSENGERS_CHOICES = (
+        ('2+', '2+'),
+        ('4+', '4+'),
+        ('5+', '5+'),
+        ('7+', '7+'),
+    )
+    TRANSMISSION_CHOICES = (
+        ('AUTOMATIC', 'Automatic'),
+        ('MANUAL', 'Manual'),
+    )
     lister = models.ForeignKey(ListerProfile, on_delete=models.CASCADE, related_name='cars')
     make = models.CharField(max_length=50)
     model = models.CharField(max_length=50)
-    year = models.PositiveIntegerField()
+    vehicle_type = models.CharField(max_length=50, choices=VEHICLE_TYPE, blank=True, null=True)
+    seats = models.PositiveIntegerField(blank=True, null=True)
+    suitcases = models.PositiveIntegerField(blank=True, null=True)
+    doors = models.PositiveIntegerField(blank=True, null=True)
+    passengers = models.CharField(max_length=20, choices=PASSENGERS_CHOICES, blank=True, null=True)
+    transmission = models.CharField(max_length=20, choices=TRANSMISSION_CHOICES, blank=True, null=True)
     price_per_day = models.DecimalField(max_digits=10, decimal_places=2)
     least_days = models.PositiveIntegerField(default=1)
     description = models.TextField(blank=True, null=True)
@@ -129,14 +154,6 @@ class CarImage(models.Model):
         return f"Image for {self.car.make} {self.car.model}"
 
 
-# Car Features - Stores optional features per car
-class CarFeature(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='features')
-    feature_name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return f"{self.feature_name} - {self.car.make} {self.car.model}"
-
 
 # Car Availability - Defines unavailable dates for a car
 class CarAvailability(models.Model):
@@ -153,8 +170,11 @@ class CarAvailability(models.Model):
 class Booking(models.Model):
     renter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='bookings')
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    pickup_location = models.CharField(max_length=255, blank=True, null=True)
+    return_location = models.CharField(max_length=255, blank=True, null=True)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)  # Added total cost field
     created_at = models.DateTimeField(default=timezone.now)
 
     STATUS_CHOICES = (
@@ -170,10 +190,15 @@ class Booking(models.Model):
             raise ValidationError("Start date cannot be in the past.")
         if self.end_date < self.start_date:
             raise ValidationError("End date must be after the start date.")
+        if self.total_cost <= 0:
+            raise ValidationError("Total cost must be greater than zero.")
 
     def save(self, *args, **kwargs):
-        self.clean()  # Ensure validation runs before saving
+        self.clean()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Booking: {self.car} by {self.renter.username} from {self.start_date} to {self.end_date}"
 
 
 # this are like the rules set by the car lister
@@ -182,6 +207,7 @@ class BookingOverview(models.Model):
     third_party_insurance = models.BooleanField(default=True)
     breakdown_assistance = models.BooleanField(default=True)
     loss_damage_waiver = models.TextField(help_text="Details about financial responsibility for damages and theft.")
+    renter_age = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
         return f"Booking Overview for {self.lister.company_name}"
