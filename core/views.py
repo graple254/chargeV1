@@ -9,6 +9,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 import json
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import now
+from django.core.files.storage import default_storage
+from django.contrib import messages
+from datetime import datetime
+
 
 
 # Authenications views and Functionalities HERE 👇 ##############################################################################
@@ -406,27 +412,162 @@ def respond_to_review(request, review_id):
 # Renter views and Functionalities HERE 👇 ##############################################################################
 
 
+from django.shortcuts import render, redirect
+
 def start(request):
-    """ Home page where renters select location, dates, and car filters. """
+    """
+    Home page where renters select:
+    - Pickup & return locations
+    - Pickup & return date & time
+    - Filters: Vehicle Type, Gear Shift, Passengers
+    - On submit, data is stored in session and passed to car_list view
+    """
+    if request.method == "POST":
+        request.session['pickup_location'] = request.POST.get("pickup_location")
+        request.session['return_location'] = request.POST.get("return_location")
+        request.session['pickup_date'] = request.POST.get("pickup_date")
+        request.session['return_date'] = request.POST.get("return_date")
+        request.session['pickup_time'] = request.POST.get("pickup_time")
+        request.session['return_time'] = request.POST.get("return_time")
+        request.session['vehicle_type'] = request.POST.get("vehicle_type")
+        request.session['gear_shift'] = request.POST.get("gear_shift")
+        request.session['passengers'] = request.POST.get("passengers")
+
+        return redirect("car_list")  # Redirect to the car listing page
+
     return render(request, "renter/home.html")
 
 
-def car_list(request):
-    """ Car selection page where renters see available cars with filtering options. """
-    cars = Car.objects.all()  # Fetch all cars (later can be filtered based on request params)
-    return render(request, "renter/car_list.html", {"cars": cars})
 
+def car_list(request):
+    """ 
+    Filters available cars based on:
+    - Pickup & return date/time
+    - Vehicle type, gear shift, passengers
+    - Availability (ensuring no conflicts with existing bookings)
+    """
+    
+    # Retrieve filters & dates from session
+    pickup_date = request.session.get("pickup_date")
+    return_date = request.session.get("return_date")
+    vehicle_type = request.session.get("vehicle_type")
+    gear_shift = request.session.get("gear_shift")
+    passengers = request.session.get("passengers")
+
+    # Convert dates to proper datetime format for filtering
+    pickup_datetime = parse_datetime(f"{pickup_date} {request.session.get('pickup_time')}")
+    return_datetime = parse_datetime(f"{return_date} {request.session.get('return_time')}")
+
+    # Base query: Get cars matching user filters
+    cars = Car.objects.filter(
+        vehicle_type=vehicle_type,
+        gear_shift=gear_shift,
+        passengers__gte=passengers  # Ensures enough seating capacity
+    )
+
+    # Exclude cars that are already booked for the requested dates
+    unavailable_car_ids = Booking.objects.filter(
+        start_date__lt=return_datetime,  # Booking overlaps with requested period
+        end_date__gt=pickup_datetime
+    ).values_list("car_id", flat=True)
+
+    available_cars = cars.exclude(id__in=unavailable_car_ids)
+
+    return render(request, "renter/car_list.html", {"cars": available_cars})
 
 def car_detail(request, car_id):
     """ Page showing details of a specific car. """
     car = get_object_or_404(Car, id=car_id)
     return render(request, "renter/car_detail.html", {"car": car})
 
-# cant actually book unless they create an account
+
 def car_booking(request, car_id):
-    """ Booking page where renters enter final details to confirm booking. """
+    """Handles the car booking process."""
     car = get_object_or_404(Car, id=car_id)
-    return render(request, "renter/car_booking.html", {"car": car})
+    
+    # Retrieve session data for filtering (previously set in the start view)
+    pickup_location = request.session.get('pickup_location')
+    return_location = request.session.get('return_location')
+    pickup_date = request.session.get('pickup_date')
+    return_date = request.session.get('return_date')
+
+    # Handle missing session data
+    if not all([pickup_location, return_location, pickup_date, return_date]):
+        messages.error(request, "Session expired or incomplete booking details. Please start again.")
+        request.session["redirect_message"] = messages.get_messages(request)  # Store messages in session
+        return redirect("start")
+
+    # Convert date strings to datetime objects
+    try:
+        pickup_date = datetime.strptime(pickup_date, "%Y-%m-%d").date()
+        return_date = datetime.strptime(return_date, "%Y-%m-%d").date()
+    except ValueError:
+        messages.error(request, "Invalid date format. Please try again.")
+        request.session["redirect_message"] = messages.get_messages(request)
+        return redirect("start")
+
+    # Validate date range
+    if pickup_date >= return_date:
+        messages.error(request, "Return date must be after the pickup date.")
+        request.session["redirect_message"] = messages.get_messages(request)
+        return redirect("start")
+
+    # Check if user is authenticated
+    if not request.user.is_authenticated:
+        return render(request, "renter/car_booking.html", {
+            "car": car,
+            "require_login": True,
+        })
+
+    # Ensure user has a rental profile
+    try:
+        rental_profile = RenterProfile.objects.get(user=request.user)
+    except RenterProfile.DoesNotExist:
+        return render(request, "renter/car_booking.html", {
+            "car": car,
+            "require_profile_creation": True,
+        })
+
+    # Calculate estimated cost
+    rental_days = (return_date - pickup_date).days
+    if rental_days < 1:
+        messages.error(request, "Minimum rental period is 1 day.")
+        request.session["redirect_message"] = messages.get_messages(request)
+        return redirect("start")
+
+    total_cost = rental_days * car.price_per_day
+
+    if request.method == "POST":
+        try:
+            Booking.objects.create(
+                user=request.user,
+                car=car,
+                rental_profile=rental_profile,
+                pickup_location=pickup_location,
+                return_location=return_location,
+                pickup_date=pickup_date,
+                return_date=return_date,
+                total_cost=total_cost,
+                status="Pending",
+                created_at=now()
+            )
+            messages.success(request, "Booking successful! Await confirmation.")
+            return redirect("booking_confirmation")
+        except Exception as e:
+            messages.error(request, f"Booking failed: {str(e)}")
+            request.session["redirect_message"] = messages.get_messages(request)
+            return redirect("car_booking", car_id=car.id)
+
+    return render(request, "renter/car_booking.html", {
+        "car": car,
+        "pickup_location": pickup_location,
+        "return_location": return_location,
+        "pickup_date": pickup_date,
+        "return_date": return_date,
+        "rental_profile": rental_profile,
+        "total_cost": total_cost,
+    })
+
 
 
 @login_required
@@ -436,3 +577,87 @@ def renter_profile(request):
     bookings = Booking.objects.filter(renter=renter).order_by("-created_at")  # Show latest bookings first
 
     return render(request, "renter/profile.html", {"renter": renter, "bookings": bookings})
+
+
+# renter functions
+
+@login_required
+def create_renter_profile(request):
+    """Creates a renter profile and returns a JSON response."""
+    if request.method == "POST":
+        user = request.user
+
+        # Check if the user already has a profile
+        if RenterProfile.objects.filter(user=user).exists():
+            return JsonResponse({"success": False, "message": "Profile already exists."}, status=400)
+
+        # Extract data from request
+        id_image = request.FILES.get("id_image")
+        driving_license_image = request.FILES.get("driving_license_image")
+        whatsapp_number = request.POST.get("whatsapp_number")
+        age = request.POST.get("age")
+
+        # Validate required fields
+        if not id_image or not driving_license_image or not age:
+            return JsonResponse({"success": False, "message": "All required fields must be filled."}, status=400)
+
+        # Save images properly
+        id_image_path = default_storage.save(f"id_images/{id_image.name}", id_image)
+        license_image_path = default_storage.save(f"license_images/{driving_license_image.name}", driving_license_image)
+
+        # Create profile
+        renter_profile = RenterProfile.objects.create(
+            user=user,
+            id_image=id_image_path,
+            driving_license_image=license_image_path,
+            whatsapp_number=whatsapp_number,
+            age=int(age),
+            verification_status="PENDING"
+        )
+
+        return JsonResponse({
+            "success": True,
+            "message": "Profile created successfully.",
+            "profile_id": renter_profile.id
+        })
+
+    return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
+
+
+@login_required
+def update_renter_profile(request):
+    """Updates an existing renter profile and returns a JSON response."""
+    user = request.user
+    renter_profile = get_object_or_404(RenterProfile, user=user)  # Get the profile or return 404
+
+    if request.method == "POST":
+        # Get updated fields from request
+        whatsapp_number = request.POST.get("whatsapp_number")
+        age = request.POST.get("age")
+        id_image = request.FILES.get("id_image")
+        driving_license_image = request.FILES.get("driving_license_image")
+
+        # Update text fields if provided
+        if whatsapp_number:
+            renter_profile.whatsapp_number = whatsapp_number
+        if age:
+            renter_profile.age = int(age)
+
+        # Handle new image uploads
+        if id_image:
+            id_image_path = default_storage.save(f"id_images/{id_image.name}", id_image)
+            renter_profile.id_image = id_image_path
+
+        if driving_license_image:
+            license_image_path = default_storage.save(f"license_images/{driving_license_image.name}", driving_license_image)
+            renter_profile.driving_license_image = license_image_path
+
+        # Save the updated profile
+        renter_profile.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": "Profile updated successfully."
+        })
+
+    return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
