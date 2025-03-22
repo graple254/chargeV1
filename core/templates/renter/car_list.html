@@ -1,0 +1,231 @@
+{% extends 'renter/base_renter.html' %}
+{% block title %} Select Car {% endblock %}
+{% load static %}
+
+{% block content %}
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container pt-0 pb-5 mb-5">
+      <div class="container mt-4 mb-4  bg-white sticky-top">
+            <div class="card shadow-sm border-0 rounded-lg p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-2">
+                            <i class="bi bi-geo-alt-fill text-dark"></i>
+                            Madrid Chamartin Train Station → Madrid Chamartin Train Station
+                        </h6>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-calendar-event text-dark"></i> Mar 23 | 12:30 PM 
+                            <span class="fw-bold">→</span> Mar 25 | 6:30 AM
+                        </p>
+                    </div>
+                    <a href="{% url 'start' %}" class="btn btn-light border rounded-circle shadow-sm">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+    <!-- Large Screen Filters (Visible on md and above) -->
+    <div class="d-none d-md-flex justify-content-start gap-3 mb-4">
+      <!-- Passengers Dropdown -->
+      <div class="btn-group">
+          <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              Passengers
+          </button>
+          <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#">2</a></li>
+              <li><a class="dropdown-item" href="#">4</a></li>
+              <li><a class="dropdown-item" href="#">6+</a></li>
+          </ul>
+      </div>
+
+      <!-- Vehicle Type Dropdown -->
+      <div class="btn-group">
+          <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              Vehicle Type
+          </button>
+          <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#">Sedan</a></li>
+              <li><a class="dropdown-item" href="#">SUV</a></li>
+              <li><a class="dropdown-item" href="#">Truck</a></li>
+          </ul>
+      </div>
+
+      <!-- Transmission Dropdown -->
+      <div class="btn-group">
+          <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              Transmission
+          </button>
+          <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#">Manual</a></li>
+              <li><a class="dropdown-item" href="#">Automatic</a></li>
+          </ul>
+      </div>
+  </div>
+
+  <!-- Small Screen Filter Button (Triggers Modal) -->
+<div class="d-md-none mb-3 text-center">
+      <button class="btn btn-light rounded-pill px-4 py-2" type="button" data-bs-toggle="modal" data-bs-target="#filterModal">
+          <i class="bi bi-filter"></i> Filter & Sort
+      </button>
+  </div>
+  
+  <!-- Scrollable Modal -->
+  <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="filterModalLabel">Filters</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                  <!-- Filter Options -->
+                  <div class="mb-3">
+                      <label class="form-label fw-bold">Passengers</label>
+                      <select class="form-select">
+                          <option value="">Any</option>
+                          <option value="2">2</option>
+                          <option value="4">4</option>
+                          <option value="6+">6+</option>
+                      </select>
+                  </div>
+  
+                  <div class="mb-3">
+                      <label class="form-label fw-bold">Vehicle Type</label>
+                      <select class="form-select">
+                          <option value="">Any</option>
+                          <option value="Sedan">Sedan</option>
+                          <option value="SUV">SUV</option>
+                          <option value="Truck">Truck</option>
+                      </select>
+                  </div>
+  
+                  <div class="mb-3">
+                      <label class="form-label fw-bold">Transmission</label>
+                      <select class="form-select">
+                          <option value="">Any</option>
+                          <option value="Manual">Manual</option>
+                          <option value="Automatic">Automatic</option>
+                      </select>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-primary">Apply Filters</button>
+              </div>
+          </div>
+      </div>
+  </div>
+  
+  
+      <div class="row g-4">
+
+            
+            <!-- Peugeot 208 -->
+            <div class="col-md-4">
+                  <div class="card bg-dark text-white border-0 rounded-4 p-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarDetails">
+                  <h5 class="fw-bold">PEUGEOT 208</h5>
+                  <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-208-5d-white-2021.png" class="card-img-top">
+                  <div class="card-body">
+                        <div class="d-flex justify-content-start gap-2 mb-3">
+                              <span class="badge bg-light text-dark"><i class="bi-people"></i> 5</span>
+                              <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> 2</span>
+                              <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
+                        </div>
+                        <p class="mb-2 text-success small">
+                              <i class="bi-check"></i> Unlimited kilometers available
+                        </p>
+                        <p class="fw-bold mb-0">$37.23 <span class="text-muted">/day</span></p>
+                  </div>
+                  </div>
+            </div>
+  
+  
+            <!-- Peugeot 208 -->
+            <div class="col-md-4">
+                  <div class="card bg-dark text-white border-0 rounded-4 p-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarDetails">
+                  <h5 class="fw-bold">PEUGEOT 208</h5>
+                  <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-308-5d-black-2021.png" class="card-img-top">
+                  <div class="card-body">
+                        <div class="d-flex justify-content-start gap-2 mb-3">
+                              <span class="badge bg-light text-dark"><i class="bi-people"></i> 5</span>
+                              <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> 2</span>
+                              <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
+                        </div>
+                        <p class="mb-2 text-success small">
+                              <i class="bi-check"></i> Unlimited kilometers available
+                        </p>
+                        <p class="fw-bold mb-0">$37.23 <span class="text-muted">/day</span></p>
+                  </div>
+                  </div>
+            </div>
+
+
+            
+            <!-- Peugeot 208 -->
+            <div class="col-md-4">
+                  <div class="card bg-dark text-white border-0 rounded-4 p-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarDetails">
+                  <h5 class="fw-bold">PEUGEOT 208</h5>
+                  <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="card-img-top">
+                  <div class="card-body">
+                        <div class="d-flex justify-content-start gap-2 mb-3">
+                              <span class="badge bg-light text-dark"><i class="bi-people"></i> 5</span>
+                              <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> 2</span>
+                              <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
+                        </div>
+                        <p class="mb-2 text-success small">
+                              <i class="bi-check"></i> Unlimited kilometers available
+                        </p>
+                        <p class="fw-bold mb-0">$37.23 <span class="text-muted">/day</span></p>
+                  </div>
+                  </div>
+            </div>
+
+      </div>
+  </div>
+  
+  
+
+<!-- Offcanvas (Right for Large Screens, Full Width for Small Screens) -->
+<div class="offcanvas offcanvas-end w-sm-100 w-md-50 h-100" id="offcanvasCarDetails">
+      <div class="container-fluid">
+            <div class="row vh-100">
+                <!-- Image Section -->
+                <div class="col-12">
+                    
+                        <!-- Close Button -->
+                        <button class="btn btn-dark position-absolute top-0 start-0 m-3 rounded-circle shadow-sm" data-bs-dismiss="offcanvas">
+                              <i class="bi bi-arrow-left fs-5 text-white"></i>
+                        </button>
+                    <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="img-fluid w-100">
+                </div>
+        
+                <!-- Car Details Section -->
+                <div class="col-12 p-4">
+                    <h4 class="fw-bold">CITROEN E-C3 <span class="text-muted fs-6">or similar</span></h4>
+                    <p class="text-muted">Economy Sedan Automatic</p>
+        
+                    <div class="row">
+                        <div class="col-6"><i class="bi bi-speedometer"></i> Range > 315km</div>
+                        <div class="col-6"><i class="bi bi-people"></i> 4 Seats</div>
+                        <div class="col-6"><i class="bi bi-suitcase"></i> 2 Bags</div>
+                        <div class="col-6"><i class="bi bi-gear"></i> Automatic</div>
+                        <div class="col-6"><i class="bi bi-door-open"></i> 5 Doors</div>
+                        <div class="col-6"><i class="bi bi-plug"></i> Cables included</div>
+                    </div>
+                    <p class="small text-muted mt-3">Minimum age of the youngest driver: 18</p>
+                </div>
+        <!-- Next Button -->
+                  <div class="col-12 p-4">
+                        <a href="#" class="btn btn-warning w-100 py-3 fw-bold">Next</a>
+                  </div>
+            </div>
+        </div>
+        
+  </div>
+  
+
+
+{% endblock %}

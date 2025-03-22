@@ -89,3 +89,6 @@ class AuthTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {"status": True})
 
+
+
+

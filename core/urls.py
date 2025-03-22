@@ -37,7 +37,7 @@ urlpatterns = [
     # Renter Endpoints and VIEWS
     path("", start, name="start"),  
     path("cars/", car_list, name="car_list"),
-    path("cars/<int:car_id>/", car_detail, name="car_detail"),
     path("cars/<int:car_id>/book/", car_booking, name="car_booking"),
+    path("bookings/", my_trips, name="booking_history"),
     path("profile/", renter_profile, name="renter_profile"),
 ]

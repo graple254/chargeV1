@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from core.auth import * # Import from auth.py
@@ -411,108 +411,107 @@ def respond_to_review(request, review_id):
 
 # Renter views and Functionalities HERE 👇 ##############################################################################
 
-
-from django.shortcuts import render, redirect
-
 def start(request):
     """
-    Home page where renters select:
+    Home page where renters enter:
     - Pickup & return locations
     - Pickup & return date & time
-    - Filters: Vehicle Type, Gear Shift, Passengers
-    - On submit, data is stored in session and passed to car_list view
+    - Data is passed via GET to car_list view
     """
     if request.method == "POST":
-        request.session['pickup_location'] = request.POST.get("pickup_location")
-        request.session['return_location'] = request.POST.get("return_location")
-        request.session['pickup_date'] = request.POST.get("pickup_date")
-        request.session['return_date'] = request.POST.get("return_date")
-        request.session['pickup_time'] = request.POST.get("pickup_time")
-        request.session['return_time'] = request.POST.get("return_time")
-        request.session['vehicle_type'] = request.POST.get("vehicle_type")
-        request.session['gear_shift'] = request.POST.get("gear_shift")
-        request.session['passengers'] = request.POST.get("passengers")
+        pickup_location = request.POST.get("pickup_location")
+        return_location = request.POST.get("return_location")
+        pickup_date = request.POST.get("pickup_date")
+        return_date = request.POST.get("return_date")
+        pickup_time = request.POST.get("pickup_time")
+        return_time = request.POST.get("return_time")
 
-        return redirect("car_list")  # Redirect to the car listing page
+        # Redirect to car_list with necessary parameters
+        return redirect(f"/cars/?pickup_location={pickup_location}&return_location={return_location}"
+                        f"&pickup_date={pickup_date}&return_date={return_date}"
+                        f"&pickup_time={pickup_time}&return_time={return_time}")
 
-    return render(request, "renter/home.html")
+    return render(request, "renter/index.html")
 
 
 
 def car_list(request):
     """ 
-    Filters available cars based on:
+    Lists available cars based on:
     - Pickup & return date/time
-    - Vehicle type, gear shift, passengers
     - Availability (ensuring no conflicts with existing bookings)
+    - Dynamic filters (vehicle type, gear shift, passengers)
     """
-    
-    # Retrieve filters & dates from session
-    pickup_date = request.session.get("pickup_date")
-    return_date = request.session.get("return_date")
-    vehicle_type = request.session.get("vehicle_type")
-    gear_shift = request.session.get("gear_shift")
-    passengers = request.session.get("passengers")
+    pickup_location = request.GET.get("pickup_location")
+    return_location = request.GET.get("return_location")
+    pickup_date = request.GET.get("pickup_date")
+    return_date = request.GET.get("return_date")
+    pickup_time = request.GET.get("pickup_time")
+    return_time = request.GET.get("return_time")
 
-    # Convert dates to proper datetime format for filtering
-    pickup_datetime = parse_datetime(f"{pickup_date} {request.session.get('pickup_time')}")
-    return_datetime = parse_datetime(f"{return_date} {request.session.get('return_time')}")
+    # Validate required parameters
+    if not all([pickup_location, return_location, pickup_date, return_date, pickup_time, return_time]):
+        messages.error(request, "Missing booking details. Please start again.")
+        return redirect("start")
 
-    # Base query: Get cars matching user filters
-    cars = Car.objects.filter(
-        vehicle_type=vehicle_type,
-        gear_shift=gear_shift,
-        passengers__gte=passengers  # Ensures enough seating capacity
-    )
+    # Convert to datetime objects for filtering
+    try:
+        pickup_datetime = datetime.strptime(f"{pickup_date} {pickup_time}", "%Y-%m-%d %H:%M")
+        return_datetime = datetime.strptime(f"{return_date} {return_time}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        messages.error(request, "Invalid date format. Please try again.")
+        return redirect("start")
 
-    # Exclude cars that are already booked for the requested dates
+    # Exclude cars already booked in the requested date range
     unavailable_car_ids = Booking.objects.filter(
-        start_date__lt=return_datetime,  # Booking overlaps with requested period
+        start_date__lt=return_datetime,  
         end_date__gt=pickup_datetime
     ).values_list("car_id", flat=True)
 
-    available_cars = cars.exclude(id__in=unavailable_car_ids)
+    available_cars = Car.objects.exclude(id__in=unavailable_car_ids)
 
-    return render(request, "renter/car_list.html", {"cars": available_cars})
-
-def car_detail(request, car_id):
-    """ Page showing details of a specific car. """
-    car = get_object_or_404(Car, id=car_id)
-    return render(request, "renter/car_detail.html", {"car": car})
+    return render(request, "renter/car_list.html", {
+        "cars": available_cars,
+        "pickup_location": pickup_location,
+        "return_location": return_location,
+        "pickup_date": pickup_date,
+        "return_date": return_date,
+        "pickup_time": pickup_time,
+        "return_time": return_time,
+    }) 
 
 
 def car_booking(request, car_id):
     """Handles the car booking process."""
     car = get_object_or_404(Car, id=car_id)
-    
-    # Retrieve session data for filtering (previously set in the start view)
-    pickup_location = request.session.get('pickup_location')
-    return_location = request.session.get('return_location')
-    pickup_date = request.session.get('pickup_date')
-    return_date = request.session.get('return_date')
 
-    # Handle missing session data
-    if not all([pickup_location, return_location, pickup_date, return_date]):
-        messages.error(request, "Session expired or incomplete booking details. Please start again.")
-        request.session["redirect_message"] = messages.get_messages(request)  # Store messages in session
+    # Retrieve booking details from GET parameters
+    pickup_location = request.GET.get("pickup_location")
+    return_location = request.GET.get("return_location")
+    pickup_date = request.GET.get("pickup_date")
+    return_date = request.GET.get("return_date")
+    pickup_time = request.GET.get("pickup_time")
+    return_time = request.GET.get("return_time")
+
+    # Validate required parameters
+    if not all([pickup_location, return_location, pickup_date, return_date, pickup_time, return_time]):
+        messages.error(request, "Incomplete booking details. Please start again.")
         return redirect("start")
 
-    # Convert date strings to datetime objects
+    # Convert to datetime objects
     try:
-        pickup_date = datetime.strptime(pickup_date, "%Y-%m-%d").date()
-        return_date = datetime.strptime(return_date, "%Y-%m-%d").date()
+        pickup_datetime = datetime.strptime(f"{pickup_date} {pickup_time}", "%Y-%m-%d %H:%M")
+        return_datetime = datetime.strptime(f"{return_date} {return_time}", "%Y-%m-%d %H:%M")
     except ValueError:
         messages.error(request, "Invalid date format. Please try again.")
-        request.session["redirect_message"] = messages.get_messages(request)
         return redirect("start")
 
     # Validate date range
-    if pickup_date >= return_date:
+    if pickup_datetime >= return_datetime:
         messages.error(request, "Return date must be after the pickup date.")
-        request.session["redirect_message"] = messages.get_messages(request)
         return redirect("start")
 
-    # Check if user is authenticated
+    # Ensure user is authenticated
     if not request.user.is_authenticated:
         return render(request, "renter/car_booking.html", {
             "car": car,
@@ -528,11 +527,10 @@ def car_booking(request, car_id):
             "require_profile_creation": True,
         })
 
-    # Calculate estimated cost
-    rental_days = (return_date - pickup_date).days
+    # Calculate cost
+    rental_days = (return_datetime - pickup_datetime).days
     if rental_days < 1:
         messages.error(request, "Minimum rental period is 1 day.")
-        request.session["redirect_message"] = messages.get_messages(request)
         return redirect("start")
 
     total_cost = rental_days * car.price_per_day
@@ -545,8 +543,8 @@ def car_booking(request, car_id):
                 rental_profile=rental_profile,
                 pickup_location=pickup_location,
                 return_location=return_location,
-                pickup_date=pickup_date,
-                return_date=return_date,
+                pickup_date=pickup_datetime,
+                return_date=return_datetime,
                 total_cost=total_cost,
                 status="Pending",
                 created_at=now()
@@ -555,8 +553,9 @@ def car_booking(request, car_id):
             return redirect("booking_confirmation")
         except Exception as e:
             messages.error(request, f"Booking failed: {str(e)}")
-            request.session["redirect_message"] = messages.get_messages(request)
-            return redirect("car_booking", car_id=car.id)
+            return redirect(f"/car-booking/{car.id}/?pickup_location={pickup_location}&return_location={return_location}"
+                            f"&pickup_date={pickup_date}&return_date={return_date}"
+                            f"&pickup_time={pickup_time}&return_time={return_time}")
 
     return render(request, "renter/car_booking.html", {
         "car": car,
@@ -564,11 +563,19 @@ def car_booking(request, car_id):
         "return_location": return_location,
         "pickup_date": pickup_date,
         "return_date": return_date,
+        "pickup_time": pickup_time,
+        "return_time": return_time,
         "rental_profile": rental_profile,
         "total_cost": total_cost,
     })
 
+@login_required
+def my_trips(request):
+    """ View for displaying the renter's booking history """
+    renter = request.user
+    bookings = Booking.objects.filter(renter=renter).order_by("-created_at")  # Show latest bookings first
 
+    return render(request, "renter/my_trips.html", {"bookings": bookings})
 
 @login_required
 def renter_profile(request):

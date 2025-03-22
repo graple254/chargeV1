@@ -1,0 +1,87 @@
+{% extends 'renter/base_renter.html' %}
+{% block title %} Start {% endblock %}
+{% load static %}
+
+{% block content %}
+
+<!-- Header-->
+<header class="py-5">
+    <div class="container px-4 px-md-5 pb-5">
+        <div class="col-xxl-5 mx-auto">
+            <div class="text-dark text-center py-3">
+                <p class="fs-1 fw-bold mb-3">Rent a car in less than a minute</p>
+                <p class="fs-5 fw-medium">From Here to There, Perfect for Work, Errands or Holiday Adventures.</p>
+            </div>
+            <div class="mt-4">
+                <div class="p-4 bg-light rounded shadow w-100">
+                    
+                    <!-- Form -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Toggle Buttons -->
+                        <div class="d-flex">
+                            <button class="btn btn-dark rounded-pill me-2" disabled>
+                                <i class="bi bi-car-front"></i> Cars
+                            </button>
+                        </div>
+
+                        <!-- Pickup & Return Fields -->
+                        <div class="row mt-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Pickup Location</label>
+                                <div class="input-group w-100">
+                                    <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                    <input type="text" name="pickup_location" class="form-control form-control-lg" placeholder="Home Or Office Address" required>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 mt-3 mt-md-0">
+                                <label class="form-label">Return Location</label>
+                                <div class="input-group w-100">
+                                    <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                    <input type="text" name="return_location" class="form-control form-control-lg" placeholder="Home Or Office Address" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date & Time Selection -->
+                        <div class="row mt-3">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Pick-up Date</label>
+                                <div class="input-group w-100">
+                                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                    <input type="date" name="pickup_date" class="form-control form-control-lg" required>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3 mt-3 mt-md-0">
+                                <label class="form-label">Pick-up Time</label>
+                                <input type="time" name="pickup_time" class="form-control form-control-lg w-100" required>
+                            </div>
+                            <div class="col-12 col-md-3 mt-3 mt-md-0">
+                                <label class="form-label">Return Date</label>
+                                <div class="input-group w-100">
+                                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                    <input type="date" name="return_date" class="form-control form-control-lg" required>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3 mt-3 mt-md-0">
+                                <label class="form-label">Return Time</label>
+                                <input type="time" name="return_time" class="form-control form-control-lg w-100" required>
+                            </div>
+                        </div>
+
+                        <!-- CTA Button -->
+                        <div class="d-flex justify-content-center justify-content-md-end mt-3">
+                            <button type="submit" class="btn btn-warning px-4 btn-lg w-100 w-md-auto">Get a Car</button>
+                        </div>
+
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+{% endblock %}
