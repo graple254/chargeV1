@@ -4,6 +4,9 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
 
 
 
@@ -142,13 +145,28 @@ class Car(models.Model):
     available = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.make} {self.model} ({self.year}) - {self.lister.company_name}"
+        return f"{self.make} {self.model} - {self.lister.company_name}"
 
 
 # Car Image - Allows multiple images per car
 class CarImage(models.Model):
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='car_images/')
+
+    def save(self, *args, **kwargs):
+        # Open image
+        img = Image.open(self.image)
+        
+        # Resize while maintaining aspect ratio
+        target_size = (752, 500)
+        img = img.resize(target_size, Image.Resampling.LANCZOS)
+        
+        # Save image back to the file
+        img_io = BytesIO()
+        img.save(img_io, format='JPEG', quality=85)  # Adjust quality for optimization
+        self.image = ContentFile(img_io.getvalue(), name=self.image.name)
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Image for {self.car.make} {self.car.model}"

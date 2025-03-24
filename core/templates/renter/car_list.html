@@ -7,225 +7,361 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container pt-0 pb-5 mb-5">
-      <div class="container mt-4 mb-4  bg-white sticky-top">
-            <div class="card shadow-sm border-0 rounded-lg p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="fw-bold mb-2">
-                            <i class="bi bi-geo-alt-fill text-dark"></i>
-                            Madrid Chamartin Train Station → Madrid Chamartin Train Station
-                        </h6>
-                        <p class="text-muted mb-0">
-                            <i class="bi bi-calendar-event text-dark"></i> Mar 23 | 12:30 PM 
-                            <span class="fw-bold">→</span> Mar 25 | 6:30 AM
-                        </p>
+    <!-- Booking Details Card -->
+    <div class="container mt-4 mb-4 bg-white sticky-top">
+        <div class="card shadow-sm border-0 rounded-lg p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="fw-bold mb-2">
+                        <i class="bi bi-geo-alt-fill text-dark"></i>
+                        {{ pickup_location }} → {{ return_location }}
+                    </h6>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-calendar-event text-dark"></i> {{ pickup_date }} | {{ pickup_time }}
+                        <span class="fw-bold">→</span> {{ return_date }} | {{ return_time }}
+                    </p>
+                </div>
+                <a href="{% url 'start' %}" class="btn btn-light border rounded-circle shadow-sm">
+                    <i class="bi bi-pencil"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+<!-- Large Screen Filters -->
+    <div class="d-none d-md-flex justify-content-start gap-3 mb-4" id="largeScreenFilters">
+        <div class="btn-group">
+            <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Passengers
+            </button>
+            <ul class="dropdown-menu" data-filter="passengers">
+                <li><a class="dropdown-item" href="#" data-value="">Any</a></li>
+                {% for value, label in passengers_choices %}
+                    <li><a class="dropdown-item" href="#" data-value="{{ value }}">{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="btn-group">
+            <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Vehicle Type
+            </button>
+            <ul class="dropdown-menu" data-filter="vehicle_type">
+                <li><a class="dropdown-item" href="#" data-value="">Any</a></li>
+                {% for value, label in vehicle_types %}
+                    <li><a class="dropdown-item" href="#" data-value="{{ value }}">{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="btn-group">
+            <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Transmission
+            </button>
+            <ul class="dropdown-menu" data-filter="transmission">
+                <li><a class="dropdown-item" href="#" data-value="">Any</a></li>
+                {% for value, label in transmission_choices %}
+                    <li><a class="dropdown-item" href="#" data-value="{{ value }}">{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Small Screen Filter Button and Modal (modified) -->
+    <div class="d-md-none mb-3 text-center">
+        <button class="btn btn-light rounded-pill px-4 py-2" type="button" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="bi bi-filter"></i> Filter & Sort
+        </button>
+    </div>
+
+    <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="filterModalLabel">Filter Options</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">Passengers</label>
+                        <select name="passengers" class="form-select shadow-sm" id="mobilePassengers">
+                            <option value="">Any</option>
+                            {% for value, label in passengers_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <a href="{% url 'start' %}" class="btn btn-light border rounded-circle shadow-sm">
-                        <i class="bi bi-pencil"></i>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">Vehicle Type</label>
+                        <select name="vehicle_type" class="form-select shadow-sm" id="mobileVehicleType">
+                            <option value="">Any</option>
+                            {% for value, label in vehicle_types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">Transmission</label>
+                        <select name="transmission" class="form-select shadow-sm" id="mobileTransmission">
+                            <option value="">Any</option>
+                            {% for value, label in transmission_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="applyMobileFilters">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt to Select a Car -->
+    <div class="alert alert-dark text-center mb-4 shadow-sm animate__animated animate__fadeIn w-75 mx-auto" role="alert" id="selectCarPrompt">
+        <h5 class="alert-heading fw-bold mb-0"><i class="fa fa-car me-2"></i>Pick Your Perfect Ride</h5>
+    </div>
+
+    <!-- Car List Section -->
+    <div class="row g-4">
+        {% for car in cars %}
+        <div class="col-md-4 car-item" data-passengers="{{ car.passengers }}" data-vehicle-type="{{ car.vehicle_type }}" data-transmission="{{ car.transmission }}">
+            <div class="card text-dark border-0 rounded-4 p-3" style="background-color: #F2F2F2;" data-bs-toggle="modal" data-bs-target="#modalCarDetails{{ car.id }}">
+                <h5 class="fw-bold">{{ car.make|upper }} {{ car.model }}</h5>
+                {% with car.images.first as first_image %}
+                    {% if first_image %}
+                        <img src="{{ first_image.image.url }}" class="card-img-top rounded-4">
+                    {% else %}
+                        <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="card-img-top">
+                    {% endif %}
+                {% endwith %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-start gap-2 mb-3">
+                        <span class="badge bg-light text-dark"><i class="bi-people"></i> {{ car.passengers }}</span>
+                        <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> {{ car.suitcases }}</span>
+                        {% if car.transmission == 'AUTOMATIC' %}
+                            <span class="badge bg-light text-dark"><i class="bi-gear"></i> Auto</span>
+                        {% elif car.transmission == 'MANUAL' %}
+                            <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
+                        {% endif %}
+                    </div>
+                    <p class="fw-bold mb-0">Kshs {{ car.price_per_day }} <span class="text-success">/day</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for this specific car -->
+        <div class="modal fade" id="modalCarDetails{{ car.id }}" tabindex="-1" aria-labelledby="modalCarDetailsLabel{{ car.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="modalCarDetailsLabel{{ car.id }}">{{ car.make|upper }} {{ car.model }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Image Section -->
+                        <div class="mb-4">
+                            {% with car.images.first as first_image %}
+                                {% if first_image %}
+                                    <img src="{{ first_image.image.url }}" class="img-fluid w-100 rounded-3">
+                                {% else %}
+                                    <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="img-fluid w-100 rounded-3">
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+
+                        <!-- Car Details Section -->
+                        <div class="mb-4">
+                            <p class="text-muted">{{ car.vehicle_type }} | {{ car.transmission }}</p>
+                            <div class="row">
+                                <div class="col-6"><i class="bi bi-speedometer"></i> {{ car.range }} km range</div>
+                                <div class="col-6"><i class="bi bi-people"></i> {{ car.passengers }} Seats</div>
+                                <div class="col-6"><i class="fa-solid fa-suitcase"></i> {{ car.suitcases }} Suitcases</div>
+                                <div class="col-6"><i class="bi bi-gear"></i> {{ car.transmission }}</div>
+                                <div class="col-6"><i class="bi bi-door-open"></i> {{ car.doors }} Doors</div>
+                                {% if car.electric %}
+                                    <div class="col-6"><i class="bi bi-plug"></i> Charging Cables Included</div>
+                                {% endif %}
+                                <div class="col-6"><i class="bi bi-calendar"></i> Min Rental: {{ car.least_days }} days</div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        {% if car.description %}
+                            <div class="mb-4">
+                                <h6 class="fw-bold">Description</h6>
+                                <p class="text-muted">{{ car.description }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Price Section -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold">Pricing</h6>
+                            <p class="fw-bold">Kshs {{ car.price_per_day }} <span class="text-success">/day</span></p>
+                        </div>
+
+                        <!-- Lister Details Section -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold">Listed By</h6>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-circle fs-4 me-2"></i>
+                                <div>
+                                    <p class="mb-0 fw-bold">{{ car.lister.company_name }}</p>
+                                    <p class="mb-0 text-muted">{{ car.lister.user.email }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="{% url 'car_booking' car.id %}?pickup_location={{ pickup_location }}&return_location={{ return_location }}&pickup_date={{ pickup_date }}&return_date={{ return_date }}&pickup_time={{ pickup_time }}&return_time={{ return_time }}" 
+   class="btn btn-warning w-100 py-3 fw-bold">
+   Next
+</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center">No cars available for the selected criteria.</p>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+    <nav aria-label="Car listings pagination">
+        <ul class="pagination justify-content-center mt-4 mb-5" style="padding-bottom: 50px;">
+            <!-- Previous Button -->
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link text-dark" href="?page=1&pickup_location={{ pickup_location }}&return_location={{ return_location }}&pickup_date={{ pickup_date }}&return_date={{ return_date }}&pickup_time={{ pickup_time }}&return_time={{ return_time }}" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
                     </a>
-                </div>
-            </div>
-        </div>
-        
-    <!-- Large Screen Filters (Visible on md and above) -->
-    <div class="d-none d-md-flex justify-content-start gap-3 mb-4">
-      <!-- Passengers Dropdown -->
-      <div class="btn-group">
-          <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              Passengers
-          </button>
-          <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#">2</a></li>
-              <li><a class="dropdown-item" href="#">4</a></li>
-              <li><a class="dropdown-item" href="#">6+</a></li>
-          </ul>
-      </div>
+                </li>
+                <li class="page-item">
+                    <a class="page-link text-dark" href="?page={{ page_obj.previous_page_number }}&pickup_location={{ pickup_location }}&return_location={{ return_location }}&pickup_date={{ pickup_date }}&return_date={{ return_date }}&pickup_time={{ pickup_time }}&return_time={{ return_time }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link text-dark">&laquo;&laquo;</span></li>
+                <li class="page-item disabled"><span class="page-link text-dark">&laquo;</span></li>
+            {% endif %}
 
-      <!-- Vehicle Type Dropdown -->
-      <div class="btn-group">
-          <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              Vehicle Type
-          </button>
-          <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#">Sedan</a></li>
-              <li><a class="dropdown-item" href="#">SUV</a></li>
-              <li><a class="dropdown-item" href="#">Truck</a></li>
-          </ul>
-      </div>
+            <!-- Page Numbers -->
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link bg-dark border-dark">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                    <li class="page-item">
+                        <a class="page-link text-dark" href="?page={{ num }}&pickup_location={{ pickup_location }}&return_location={{ return_location }}&pickup_date={{ pickup_date }}&return_date={{ return_date }}&pickup_time={{ pickup_time }}&return_time={{ return_time }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
 
-      <!-- Transmission Dropdown -->
-      <div class="btn-group">
-          <button type="button" class="btn btn-light rounded-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              Transmission
-          </button>
-          <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#">Manual</a></li>
-              <li><a class="dropdown-item" href="#">Automatic</a></li>
-          </ul>
-      </div>
-  </div>
-
-  <!-- Small Screen Filter Button (Triggers Modal) -->
-<div class="d-md-none mb-3 text-center">
-      <button class="btn btn-light rounded-pill px-4 py-2" type="button" data-bs-toggle="modal" data-bs-target="#filterModal">
-          <i class="bi bi-filter"></i> Filter & Sort
-      </button>
-  </div>
-  
-  <!-- Scrollable Modal -->
-  <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-scrollable">
-          <div class="modal-content">
-              <div class="modal-header">
-                  <h5 class="modal-title" id="filterModalLabel">Filters</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                  <!-- Filter Options -->
-                  <div class="mb-3">
-                      <label class="form-label fw-bold">Passengers</label>
-                      <select class="form-select">
-                          <option value="">Any</option>
-                          <option value="2">2</option>
-                          <option value="4">4</option>
-                          <option value="6+">6+</option>
-                      </select>
-                  </div>
-  
-                  <div class="mb-3">
-                      <label class="form-label fw-bold">Vehicle Type</label>
-                      <select class="form-select">
-                          <option value="">Any</option>
-                          <option value="Sedan">Sedan</option>
-                          <option value="SUV">SUV</option>
-                          <option value="Truck">Truck</option>
-                      </select>
-                  </div>
-  
-                  <div class="mb-3">
-                      <label class="form-label fw-bold">Transmission</label>
-                      <select class="form-select">
-                          <option value="">Any</option>
-                          <option value="Manual">Manual</option>
-                          <option value="Automatic">Automatic</option>
-                      </select>
-                  </div>
-              </div>
-              <div class="modal-footer">
-                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                  <button type="button" class="btn btn-primary">Apply Filters</button>
-              </div>
-          </div>
-      </div>
-  </div>
-  
-  
-      <div class="row g-4">
-
-            
-            <!-- Peugeot 208 -->
-            <div class="col-md-4">
-                  <div class="card bg-dark text-white border-0 rounded-4 p-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarDetails">
-                  <h5 class="fw-bold">PEUGEOT 208</h5>
-                  <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-208-5d-white-2021.png" class="card-img-top">
-                  <div class="card-body">
-                        <div class="d-flex justify-content-start gap-2 mb-3">
-                              <span class="badge bg-light text-dark"><i class="bi-people"></i> 5</span>
-                              <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> 2</span>
-                              <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
-                        </div>
-                        <p class="mb-2 text-success small">
-                              <i class="bi-check"></i> Unlimited kilometers available
-                        </p>
-                        <p class="fw-bold mb-0">$37.23 <span class="text-muted">/day</span></p>
-                  </div>
-                  </div>
-            </div>
-  
-  
-            <!-- Peugeot 208 -->
-            <div class="col-md-4">
-                  <div class="card bg-dark text-white border-0 rounded-4 p-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarDetails">
-                  <h5 class="fw-bold">PEUGEOT 208</h5>
-                  <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-308-5d-black-2021.png" class="card-img-top">
-                  <div class="card-body">
-                        <div class="d-flex justify-content-start gap-2 mb-3">
-                              <span class="badge bg-light text-dark"><i class="bi-people"></i> 5</span>
-                              <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> 2</span>
-                              <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
-                        </div>
-                        <p class="mb-2 text-success small">
-                              <i class="bi-check"></i> Unlimited kilometers available
-                        </p>
-                        <p class="fw-bold mb-0">$37.23 <span class="text-muted">/day</span></p>
-                  </div>
-                  </div>
-            </div>
+            <!-- Next Button -->
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link text-dark" href="?page={{ page_obj.next_page_number }}&pickup_location={{ pickup_location }}&return_location={{ return_location }}&pickup_date={{ pickup_date }}&return_date={{ return_date }}&pickup_time={{ pickup_time }}&return_time={{ return_time }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link text-dark" href="?page={{ page_obj.paginator.num_pages }}&pickup_location={{ pickup_location }}&return_location={{ return_location }}&pickup_date={{ pickup_date }}&return_date={{ return_date }}&pickup_time={{ pickup_time }}&return_time={{ return_time }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link text-dark">&raquo;</span></li>
+                <li class="page-item disabled"><span class="page-link text-dark">&raquo;&raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
 
 
-            
-            <!-- Peugeot 208 -->
-            <div class="col-md-4">
-                  <div class="card bg-dark text-white border-0 rounded-4 p-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarDetails">
-                  <h5 class="fw-bold">PEUGEOT 208</h5>
-                  <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="card-img-top">
-                  <div class="card-body">
-                        <div class="d-flex justify-content-start gap-2 mb-3">
-                              <span class="badge bg-light text-dark"><i class="bi-people"></i> 5</span>
-                              <span class="badge bg-light text-dark"><i class="fa-solid fa-suitcase"></i> 2</span>
-                              <span class="badge bg-light text-dark"><i class="bi-gear"></i> Manual</span>
-                        </div>
-                        <p class="mb-2 text-success small">
-                              <i class="bi-check"></i> Unlimited kilometers available
-                        </p>
-                        <p class="fw-bold mb-0">$37.23 <span class="text-muted">/day</span></p>
-                  </div>
-                  </div>
-            </div>
-
-      </div>
-  </div>
-  
-  
-
-<!-- Offcanvas (Right for Large Screens, Full Width for Small Screens) -->
-<div class="offcanvas offcanvas-end w-sm-100 w-md-50 h-100" id="offcanvasCarDetails">
-      <div class="container-fluid">
-            <div class="row vh-100">
-                <!-- Image Section -->
-                <div class="col-12">
-                    
-                        <!-- Close Button -->
-                        <button class="btn btn-dark position-absolute top-0 start-0 m-3 rounded-circle shadow-sm" data-bs-dismiss="offcanvas">
-                              <i class="bi bi-arrow-left fs-5 text-white"></i>
-                        </button>
-                    <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="img-fluid w-100">
-                </div>
-        
-                <!-- Car Details Section -->
-                <div class="col-12 p-4">
-                    <h4 class="fw-bold">CITROEN E-C3 <span class="text-muted fs-6">or similar</span></h4>
-                    <p class="text-muted">Economy Sedan Automatic</p>
-        
-                    <div class="row">
-                        <div class="col-6"><i class="bi bi-speedometer"></i> Range > 315km</div>
-                        <div class="col-6"><i class="bi bi-people"></i> 4 Seats</div>
-                        <div class="col-6"><i class="bi bi-suitcase"></i> 2 Bags</div>
-                        <div class="col-6"><i class="bi bi-gear"></i> Automatic</div>
-                        <div class="col-6"><i class="bi bi-door-open"></i> 5 Doors</div>
-                        <div class="col-6"><i class="bi bi-plug"></i> Cables included</div>
-                    </div>
-                    <p class="small text-muted mt-3">Minimum age of the youngest driver: 18</p>
-                </div>
-        <!-- Next Button -->
-                  <div class="col-12 p-4">
-                        <a href="#" class="btn btn-warning w-100 py-3 fw-bold">Next</a>
-                  </div>
-            </div>
-        </div>
-        
-  </div>
-  
 
 
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize filter object
+        let filters = {
+            passengers: '',
+            vehicle_type: '',
+            transmission: ''
+        };
+    
+        // Function to filter cars based on current filter values
+        function filterCars() {
+            const carItems = document.querySelectorAll('.car-item');
+            carItems.forEach(car => {
+                const passengers = car.dataset.passengers;
+                const vehicleType = car.dataset.vehicleType;
+                const transmission = car.dataset.transmission;
+    
+                // Car matches if filter is empty (Any) or matches the car's attribute
+                const matchesPassengers = filters.passengers === '' || passengers === filters.passengers;
+                const matchesVehicleType = filters.vehicle_type === '' || vehicleType === filters.vehicle_type;
+                const matchesTransmission = filters.transmission === '' || transmission === filters.transmission;
+    
+                // Show car if it matches all filters, hide otherwise
+                car.style.display = (matchesPassengers && matchesVehicleType && matchesTransmission) ? 'block' : 'none';
+            });
+        }
+    
+        // Large Screen Filters: Handle dropdown item clicks
+        const largeScreenFilters = document.getElementById('largeScreenFilters');
+        if (largeScreenFilters) {
+            const dropdownItems = largeScreenFilters.querySelectorAll('.dropdown-item');
+            dropdownItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault(); // Prevent default link behavior
+                    const filterType = this.closest('.dropdown-menu').dataset.filter;
+                    const value = this.dataset.value;
+                    filters[filterType] = value;
+                    filterCars();
+                });
+            });
+        }
+    
+        // Small Screen Filters: Handle Apply Filters button click
+        const applyMobileFiltersBtn = document.getElementById('applyMobileFilters');
+        if (applyMobileFiltersBtn) {
+            applyMobileFiltersBtn.addEventListener('click', function() {
+                filters.passengers = document.getElementById('mobilePassengers').value;
+                filters.vehicle_type = document.getElementById('mobileVehicleType').value;
+                filters.transmission = document.getElementById('mobileTransmission').value;
+    
+                // Close the modal using Bootstrap's API
+                const modalElement = document.getElementById('filterModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+    
+                filterCars();
+            });
+        }
+    });
+    </script>
+
+<!-- Script to auto-dismiss the prompt -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const prompt = document.getElementById('selectCarPrompt');
+        if (prompt) {
+            setTimeout(function() {
+                const bsAlert = new bootstrap.Alert(prompt);
+                bsAlert.close();
+            }, 5000); // Disappears after 3 seconds
+        }
+    });
+    </script>
+    
 {% endblock %}

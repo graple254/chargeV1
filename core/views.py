@@ -14,7 +14,8 @@ from django.utils.timezone import now
 from django.core.files.storage import default_storage
 from django.contrib import messages
 from datetime import datetime
-
+from django.db.models import Q
+from django.core.paginator import Paginator
 
 
 # Authenications views and Functionalities HERE 👇 ##############################################################################
@@ -434,7 +435,6 @@ def start(request):
     return render(request, "renter/index.html")
 
 
-
 def car_list(request):
     """ 
     Lists available cars based on:
@@ -462,24 +462,37 @@ def car_list(request):
         messages.error(request, "Invalid date format. Please try again.")
         return redirect("start")
 
-    # Exclude cars already booked in the requested date range
+    # Get cars that are already booked within the requested time range
     unavailable_car_ids = Booking.objects.filter(
-        start_date__lt=return_datetime,  
-        end_date__gt=pickup_datetime
+        Q(start_date__lt=return_datetime, end_date__gt=pickup_datetime)
     ).values_list("car_id", flat=True)
 
-    available_cars = Car.objects.exclude(id__in=unavailable_car_ids)
+    # Filter available cars
+    available_cars = Car.objects.exclude(id__in=unavailable_car_ids).order_by('price_per_day')
+    
+    # Add pagination (9 cars per page)
+    paginator = Paginator(available_cars, 9)  # 9 cars per page
+    page_number = request.GET.get('page')  # Get the page number from the URL query
+    page_obj = paginator.get_page(page_number)  # Get the specific page object
+
+    # Pass choices from the Car model to the template
+    vehicle_types = Car.VEHICLE_TYPE
+    passengers_choices = Car.PASSENGERS_CHOICES
+    transmission_choices = Car.TRANSMISSION_CHOICES
 
     return render(request, "renter/car_list.html", {
-        "cars": available_cars,
+        "cars": page_obj,
         "pickup_location": pickup_location,
         "return_location": return_location,
         "pickup_date": pickup_date,
         "return_date": return_date,
         "pickup_time": pickup_time,
         "return_time": return_time,
-    }) 
-
+        "vehicle_types": vehicle_types,
+        "passengers_choices": passengers_choices,
+        "transmission_choices": transmission_choices,
+        "page_obj": page_obj,  # Pass page_obj for pagination controls
+    })
 
 def car_booking(request, car_id):
     """Handles the car booking process."""
