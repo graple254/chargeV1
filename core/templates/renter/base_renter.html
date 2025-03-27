@@ -12,7 +12,7 @@
         <!-- Custom Google font-->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <!-- Bootstrap icons-->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet" />
         <!-- Core theme CSS (includes Bootstrap)-->
@@ -60,80 +60,165 @@
                 </div>
             </nav>
 
+            <!-- Messages -->
+            {% if messages %}
+                <div class="container mt-3">
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             <!-- Content-->
             {% block content %}{% endblock %}
             
         </main>
 
         <!-- Bottom Navigation for Small Screens -->
-            <nav class="navbar navbar-light bg-white fixed-bottom d-lg-none border-top">
-                  <div class="container d-flex justify-content-around py-2">
-                  <!-- Book Car -->
-                  <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
-                        <i class="bi bi-bag fs-4"></i>
-                        <div class="small">Book Car</div>
-                  </a>
-            
-                  <!-- My Trips -->
-                  <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
-                        <i class="bi bi-record-circle fs-4"></i>
-                        <div class="small">My Trips</div>
-                  </a>
-            
-                  <!-- More (Triggers Offcanvas) -->
-                  <a href="#" class="text-decoration-none text-dark text-center" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMore">
-                        <i class="bi bi-list fs-4"></i>
-                        <div class="small">More</div>
-                  </a>
-                  </div>
-            </nav>
-
-<!-- Bottom Offcanvas for "More" Menu -->
-<div class="offcanvas offcanvas-bottom h-75 rounded-top shadow-lg" tabindex="-1" id="offcanvasMore">
-      <div class="offcanvas-header border-bottom">
-            <div class="container d-flex justify-content-center">
-                  <h5 class="offcanvas-title fw-bold">More</h5>
-
+        <nav class="navbar navbar-light bg-white fixed-bottom d-lg-none border-top">
+            <div class="container d-flex justify-content-around py-2">
+                <!-- Book Car -->
+                <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
+                    <i class="bi bi-bag fs-4"></i>
+                    <div class="small">Book Car</div>
+                </a>
+          
+                <!-- My Trips -->
+                <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
+                    <i class="bi bi-record-circle fs-4"></i>
+                    <div class="small">My Trips</div>
+                </a>
+          
+                <!-- More (Triggers Offcanvas) -->
+                <a href="#" class="text-decoration-none text-dark text-center" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMore">
+                    <i class="bi bi-list fs-4"></i>
+                    <div class="small">More</div>
+                </a>
             </div>
-          <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-      </div>
-      <div class="offcanvas-body p-0">
-          <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex align-items-center py-3">
-                  <i class="bi bi-person-circle me-3 fs-5 text-dark"></i>
-                  <a href="{% url 'renter_profile' %}" class="text-decoration-none flex-grow-1 text-dark">Personal Details</a>
-                  <i class="bi bi-chevron-right text-muted"></i>
-              </li>
-              <li class="list-group-item d-flex align-items-center py-3">
-                  <i class="bi bi-info-circle me-3 fs-5 text-dark"></i>
-                  <a href="#" class="text-decoration-none flex-grow-1 text-dark">About Charge</a>
-                  <i class="bi bi-chevron-right text-muted"></i>
-              </li>
-              <li class="list-group-item d-flex align-items-center py-3">
-                  <i class="bi bi-cash-stack me-3 fs-5 text-dark"></i>
-                  <a href="#" class="text-decoration-none flex-grow-1 text-dark">Become a Rental Partner</a>
-                  <i class="bi bi-chevron-right text-muted"></i>
-              </li>
-              <li class="list-group-item d-flex align-items-center py-3">
-                  <i class="bi bi-headset me-3 fs-5 text-dark"></i>
-                  <a href="#" class="text-decoration-none flex-grow-1 text-dark">Customer Support</a>
-                  <i class="bi bi-chevron-right text-muted"></i>
-              </li>
-              <li class="list-group-item d-flex align-items-center py-3">
-                  <i class="bi bi-box-arrow-right me-3 fs-5 text-danger"></i>
-                  <a href="#" class="text-decoration-none flex-grow-1 text-danger fw-bold">Logout</a>
-                  <i class="bi bi-chevron-right text-muted"></i>
-              </li>
-          </ul>
-      </div>
-  </div>
-            
-      
+        </nav>
 
+        <!-- Bottom Offcanvas for "More" Menu -->
+        <div class="offcanvas offcanvas-bottom h-75 rounded-top shadow-lg" tabindex="-1" id="offcanvasMore">
+            <div class="offcanvas-header border-bottom">
+                <div class="container d-flex justify-content-center">
+                    <h5 class="offcanvas-title fw-bold">More</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex align-items-center py-3">
+                        <i class="bi bi-person-circle me-3 fs-5 text-dark"></i>
+                        <a href="{% url 'renter_profile' %}" class="text-decoration-none flex-grow-1 text-dark">Personal Details</a>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center py-3">
+                        <i class="bi bi-info-circle me-3 fs-5 text-dark"></i>
+                        <a href="#" class="text-decoration-none flex-grow-1 text-dark">About Charge</a>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center py-3">
+                        <i class="bi bi-cash-stack me-3 fs-5 text-dark"></i>
+                        <a href="#" class="text-decoration-none flex-grow-1 text-dark">Become a Rental Partner</a>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center py-3">
+                        <i class="bi bi-headset me-3 fs-5 text-dark"></i>
+                        <a href="#" class="text-decoration-none flex-grow-1 text-dark">Customer Support</a>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center py-3">
+                        <i class="bi bi-box-arrow-right me-3 fs-5 text-danger"></i>
+                        <a href="{% url 'logout' %}" class="text-decoration-none flex-grow-1 text-danger fw-bold">Logout</a>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </li>
+                </ul>
+            </div>
+        </div>
 
-        <!-- Bootstrap core JS-->
+        <!-- Login Modal -->
+        <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="loginModalLabel">Log In</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Messages -->
+                        <div id="loginModalMessages" class="mb-3"></div>
+
+                        <!-- Login Form -->
+                        <form id="loginFormElement" onsubmit="handleLogin(event)">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="loginUsername" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="loginUsername" name="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="loginPassword" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="loginPassword" name="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100 rounded-pill">Log In</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bootstrap core JS and jQuery -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
         <script src="{% static 'files/renter/js/scripts.js' %}"></script>
+        <script>
+            $(document).ready(function() {
+                // Check if the page requires login (set by the view)
+                const requireLogin = {{ require_login|yesno:"true,false" }};
+
+                if (requireLogin) {
+                    $('#loginModal').modal('show');
+                }
+
+                // Handle modal close: reset form and messages
+                $('#loginModal').on('hidden.bs.modal', function() {
+                    $('#loginModalMessages').empty();
+                    $('#loginFormElement')[0].reset();
+                });
+            });
+
+            function showMessage(message, type = 'success') {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                $('#loginModalMessages').html(`<div class="alert ${alertClass}">${message}</div>`);
+            }
+
+            function handleLogin(event) {
+                event.preventDefault();
+                const formData = new FormData(document.getElementById('loginFormElement'));
+
+                $.ajax({
+                    url: "{% url 'login' %}",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.status === "success" || response.status === true) {
+                            showMessage(response.message);
+                            $('#loginModal').modal('hide');
+                            // Reload the page to reflect the logged-in state
+                            window.location.reload();
+                        } else {
+                            showMessage(response.message || response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showMessage("An error occurred. Please try again.", 'error');
+                    }
+                });
+            }
+        </script>
     </body>
 </html>

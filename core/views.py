@@ -16,30 +16,31 @@ from django.contrib import messages
 from datetime import datetime
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
+import re
+
 
 
 # Authenications views and Functionalities HERE 👇 ##############################################################################
 
 
-
+@csrf_exempt
 def authenticate_user(request):
     """Authenticate a user dynamically from any view."""
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        user = authenticate(request, username=username, password=password)
+        result = authenticate_user_func(request, username, password)
+        return JsonResponse({
+            "status": result["status"],
+            "message": result.get("user", result.get("error"))
+        })
 
-        if user:
-            login(request, user)
-            return JsonResponse({"status": "success", "message": "Login successful!", "user": user.username})
-
-        return JsonResponse({"status": "error", "message": "Invalid credentials"})
-
-    return JsonResponse({"status": "error", "message": "Invalid request method"})
+    return JsonResponse({"status": False, "error": "Invalid request method"})
 
 
-
+@csrf_exempt
 def send_verification_code(request):
     """Sends an email verification code to the user."""
     if request.method == "POST":
@@ -48,19 +49,24 @@ def send_verification_code(request):
         if not email:
             return JsonResponse({"status": False, "error": "Email is required"})
 
+        # Rate limiting: Check if a code was sent recently (e.g., within 60 seconds)
+        timestamp = request.session.get("email_verification_timestamp")
+        if timestamp and (time.time() - timestamp) < 60:
+            return JsonResponse({"status": False, "error": "Please wait 60 seconds before requesting a new code"})
+
         code = generate_verification_code()
         request.session["email_verification_code"] = code
         request.session["email_verification_address"] = email
-        request.session["email_verification_timestamp"] = time.time()  # Store timestamp
+        request.session["email_verification_timestamp"] = time.time()
 
-        send_verification_email(email, code)
-
-        return JsonResponse({"status": True, "message": "Verification code sent!"})
+        if send_verification_email(email, code):
+            return JsonResponse({"status": True, "message": "Verification code sent to your email!"})
+        else:
+            return JsonResponse({"status": False, "error": "Failed to send verification code. Please try again."})
 
     return JsonResponse({"status": False, "error": "Invalid request"})
 
-
-
+@csrf_exempt
 def verify_email_code(request):
     """Checks if the entered code matches the stored code."""
     if request.method == "POST":
@@ -68,13 +74,22 @@ def verify_email_code(request):
         stored_code = request.session.get("email_verification_code")
         timestamp = request.session.get("email_verification_timestamp")
 
-        # Check if the code is expired (5-minute limit)
-        if not stored_code:
+        if not stored_code or not timestamp:
             return JsonResponse({"status": False, "error": "No verification code found. Request a new one."})
 
+        # Check if the code is expired (5-minute limit)
+        if time.time() - timestamp > 300:  # 5 minutes = 300 seconds
+            for key in ["email_verification_code", "email_verification_address", "email_verification_timestamp"]:
+                if key in request.session:
+                    del request.session[key]
+            return JsonResponse({"status": False, "error": "Verification code has expired. Request a new one."})
 
         if stored_code == code_entered:
             request.session["verified_email"] = request.session["email_verification_address"]
+            # Clear verification session data after successful verification
+            for key in ["email_verification_code", "email_verification_address", "email_verification_timestamp"]:
+                if key in request.session:
+                    del request.session[key]
             return JsonResponse({"status": True, "message": "Email verified successfully!"})
 
         return JsonResponse({"status": False, "error": "Invalid verification code"})
@@ -82,12 +97,14 @@ def verify_email_code(request):
     return JsonResponse({"status": False, "error": "Invalid request"})
 
 
+
+@csrf_exempt
 def user_signup(request):
     """Handles user signup after email verification."""
     if request.method == "POST":
         email = request.POST.get("email")
 
-        # ✅ Check if email is verified
+        # Check if email is verified
         if request.session.get("verified_email") != email:
             return JsonResponse({"status": False, "error": "Email not verified"})
 
@@ -97,11 +114,23 @@ def user_signup(request):
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
 
-        # Call registration function
+        # Validate inputs
+        if not all([username, email, phone_number, role, password, confirm_password]):
+            return JsonResponse({"status": False, "error": "All fields are required"})
+
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            return JsonResponse({"status": False, "error": "Invalid email format"})
+
+        if role not in ["renter", "owner"]:
+            return JsonResponse({"status": False, "error": "Invalid role"})
+
+        # Register the user
         response = register_user(username, email, phone_number, role, password, confirm_password)
         
         if response["status"]:
-            # ✅ Clear session after successful signup
+            # Log the user in after signup
+            authenticate_user_func(request, username, password)
+            # Clear session after successful signup
             for key in [
                 "verified_email",
                 "email_verification_code",
@@ -110,19 +139,20 @@ def user_signup(request):
             ]:
                 if key in request.session:
                     del request.session[key]
+            return JsonResponse({"status": True, "message": "User registered successfully!"})
 
-        return JsonResponse(response, safe=False)  # ✅ Ensure JSON response is serializable
+        return JsonResponse({"status": False, "error": response["error"]})
 
     return JsonResponse({"status": False, "error": "Invalid request"})
 
 
 
 
-def user_logout(request):
-    """View to log out a user and return a response."""
-    response = logout_user(request)  # Call function from auth.py
-    return JsonResponse(response)
-
+    
+def logout_user(request):
+    """Logs out the user and redirects to the start page."""
+    logout(request)
+    return redirect("start")
 
 # END OF AUTHENTICATION VIEWS AND FUNCTIONALITIES #######################################################################
 
@@ -494,20 +524,34 @@ def car_list(request):
         "page_obj": page_obj,  # Pass page_obj for pagination controls
     })
 
+@csrf_exempt
 def car_booking(request, car_id):
     """Handles the car booking process."""
     car = get_object_or_404(Car, id=car_id)
 
-    # Retrieve booking details from GET parameters
-    pickup_location = request.GET.get("pickup_location")
-    return_location = request.GET.get("return_location")
-    pickup_date = request.GET.get("pickup_date")
-    return_date = request.GET.get("return_date")
-    pickup_time = request.GET.get("pickup_time")
-    return_time = request.GET.get("return_time")
+    # Determine the source of booking details based on request method
+    if request.method == "POST":
+        # For POST requests, get details from the form data
+        pickup_location = request.POST.get("pickup_location")
+        return_location = request.POST.get("return_location")
+        pickup_date = request.POST.get("pickup_date")
+        return_date = request.POST.get("return_date")
+        pickup_time = request.POST.get("pickup_time")
+        return_time = request.POST.get("return_time")
+        total_cost = request.POST.get("total_cost")
+    else:
+        # For GET requests, get details from the query parameters
+        pickup_location = request.GET.get("pickup_location")
+        return_location = request.GET.get("return_location")
+        pickup_date = request.GET.get("pickup_date")
+        return_date = request.GET.get("return_date")
+        pickup_time = request.GET.get("pickup_time")
+        return_time = request.GET.get("return_time")
+        total_cost = None  # Will be calculated below
 
     # Validate required parameters
     if not all([pickup_location, return_location, pickup_date, return_date, pickup_time, return_time]):
+        print("Incomplete booking details. Please start again.")
         messages.error(request, "Incomplete booking details. Please start again.")
         return redirect("start")
 
@@ -516,61 +560,31 @@ def car_booking(request, car_id):
         pickup_datetime = datetime.strptime(f"{pickup_date} {pickup_time}", "%Y-%m-%d %H:%M")
         return_datetime = datetime.strptime(f"{return_date} {return_time}", "%Y-%m-%d %H:%M")
     except ValueError:
+        print("Invalid date format. Please try again.")
         messages.error(request, "Invalid date format. Please try again.")
         return redirect("start")
 
     # Validate date range
     if pickup_datetime >= return_datetime:
+        print("Return date must be after the pickup date.")
         messages.error(request, "Return date must be after the pickup date.")
         return redirect("start")
 
-    # Ensure user is authenticated
-    if not request.user.is_authenticated:
-        return render(request, "renter/car_booking.html", {
-            "car": car,
-            "require_login": True,
-        })
-
-    # Ensure user has a rental profile
-    try:
-        rental_profile = RenterProfile.objects.get(user=request.user)
-    except RenterProfile.DoesNotExist:
-        return render(request, "renter/car_booking.html", {
-            "car": car,
-            "require_profile_creation": True,
-        })
-
-    # Calculate cost
+    # Calculate rental days and cost (needed in all cases)
     rental_days = (return_datetime - pickup_datetime).days
     if rental_days < 1:
+        print("Minimum rental period is 1 day.")
         messages.error(request, "Minimum rental period is 1 day.")
         return redirect("start")
 
-    total_cost = rental_days * car.price_per_day
+    # Calculate total cost if not provided (for GET requests)
+    if not total_cost:
+        total_cost = rental_days * car.price_per_day
+    else:
+        total_cost = float(total_cost)  # Convert from string to float
 
-    if request.method == "POST":
-        try:
-            Booking.objects.create(
-                user=request.user,
-                car=car,
-                rental_profile=rental_profile,
-                pickup_location=pickup_location,
-                return_location=return_location,
-                pickup_date=pickup_datetime,
-                return_date=return_datetime,
-                total_cost=total_cost,
-                status="Pending",
-                created_at=now()
-            )
-            messages.success(request, "Booking successful! Await confirmation.")
-            return redirect("booking_confirmation")
-        except Exception as e:
-            messages.error(request, f"Booking failed: {str(e)}")
-            return redirect(f"/car-booking/{car.id}/?pickup_location={pickup_location}&return_location={return_location}"
-                            f"&pickup_date={pickup_date}&return_date={return_date}"
-                            f"&pickup_time={pickup_time}&return_time={return_time}")
-
-    return render(request, "renter/car_booking.html", {
+    # Base context with booking details
+    context = {
         "car": car,
         "pickup_location": pickup_location,
         "return_location": return_location,
@@ -578,17 +592,73 @@ def car_booking(request, car_id):
         "return_date": return_date,
         "pickup_time": pickup_time,
         "return_time": return_time,
-        "rental_profile": rental_profile,
+        "rental_days": rental_days,
         "total_cost": total_cost,
-    })
+    }
+
+    # Ensure user is authenticated
+    if not request.user.is_authenticated:
+        context["require_login"] = True
+        print("User not logged in. Please log in to continue.")
+        return render(request, "renter/car_booking.html", context)
+
+    # Ensure user has a rental profile
+    try:
+        rental_profile = RenterProfile.objects.get(user=request.user)
+    except RenterProfile.DoesNotExist:
+        context["require_profile_creation"] = True
+        print("Renter profile not found. Please create one.")
+        return render(request, "renter/car_booking.html", context)
+
+    # Add rental profile to context if user has one
+    context["rental_profile"] = rental_profile
+
+    if request.method == "POST":
+        try:# Extract dates from datetime objects (Booking model expects DateField)
+            start_date = pickup_datetime.date()
+            end_date = return_datetime.date()
+
+            # Create the booking
+            Booking.objects.create(
+                renter=request.user,  # Map 'user' to 'renter'
+                car=car,
+                start_date=start_date,  # Map 'pickup_date' to 'start_date'
+                end_date=end_date,  # Map 'return_date' to 'end_date'
+                pickup_location=pickup_location,
+                return_location=return_location,
+                total_cost=total_cost,
+                status="PENDING",  # Use uppercase to match STATUS_CHOICES
+                created_at=now()
+            )
+            messages.success(request, "Booking successful! Await confirmation.")
+            return redirect("booking_history")
+        except Exception as e:
+            messages.error(request, f"Booking failed: {str(e)}")
+            print(f"Booking failed: {str(e)}")
+            # Redirect back to the booking page with the original query parameters
+            query_params = (
+                f"pickup_location={pickup_location}&return_location={return_location}"
+                f"&pickup_date={pickup_date}&return_date={return_date}"
+                f"&pickup_time={pickup_time}&return_time={return_time}"
+            )
+            return redirect(f"/cars/{car.id}/book/?{query_params}")
+
+    return render(request, "renter/car_booking.html", context)
+
 
 @login_required
 def my_trips(request):
     """ View for displaying the renter's booking history """
     renter = request.user
+
+    if not request.user.is_authenticated:
+        # Render the page but set require_login to True
+        return render(request, "renter/booking_history.html", {"require_login": True})
+    
+
     bookings = Booking.objects.filter(renter=renter).order_by("-created_at")  # Show latest bookings first
 
-    return render(request, "renter/my_trips.html", {"bookings": bookings})
+    return render(request, "renter/my_trips.html", {"bookings": bookings, "require_login": False})
 
 @login_required
 def renter_profile(request):
@@ -600,7 +670,7 @@ def renter_profile(request):
 
 
 # renter functions
-
+@csrf_exempt
 @login_required
 def create_renter_profile(request):
     """Creates a renter profile and returns a JSON response."""

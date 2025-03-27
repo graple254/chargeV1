@@ -1,15 +1,473 @@
 {% extends 'renter/base_renter.html' %}
-{% block title %} Researve a Car {% endblock %}
+{% block title %} Reserve a Car {% endblock %}
 {% load static %}
 
 {% block content %}
 <!-- Bootstrap 5 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 
-<div class="container pt-0 pb-5 mb-5">
-        <h1 class="text-center">Reserve a Car</h1>
+<div class="container">
+    <div class="row g-4">
+        <!-- Left Column: Car Summary and Booking Details -->
+        <div class="col-lg-8">
+            <!-- Car Summary -->
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            {% with car.images.first as first_image %}
+                                {% if first_image %}
+                                    <img src="{{ first_image.image.url }}" class="img-fluid rounded-3" alt="{{ car.make }} {{ car.model }}">
+                                {% else %}
+                                    <img src="https://www.sixt.com/fileadmin2/files/global/sideview/user_upload/fleet/png/752x500/peugeot-2008-suv-white-2024.png" class="img-fluid rounded-3" alt="Default Car">
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="col-md-8">
+                            <h3 class="fw-bold mb-2" style="margin-top: 2%;">{{ car.make|upper }} {{ car.model }}</h3>
+                            <p class="fw-bold mb-0" style="margin-bottom: 2%;">Kshs {{ car.price_per_day }} <span class="text-success">/day</span></p>
+                            <div>
+                                <p class="mb-0 text-muted">Listed By: {{ car.lister.company_name }}</p>
+                                <p class="mb-0 text-muted">Contact Email: {{ car.lister.user.email }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Details -->
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4">Booking Details</h5>
+                    <div class="position-relative">
+                        <!-- Pickup -->
+                        <div class="d-flex align-items-start mb-4">
+                            <i class="bi bi-geo-alt-fill text-dark me-3 fs-5"></i>
+                            <div>
+                                <p class="text-muted mb-1">Pickup Location</p>
+                                <p class="fw-bold mb-0">{{ pickup_location }}</p>
+                                <p class="text-muted mb-0">{{ pickup_date }} | {{ pickup_time }}</p>
+                            </div>
+                        </div>
+                        <!-- Connecting Line -->
+                        <div class="position-absolute start-0 ms-2" style="top: 30px; bottom: 80px; width: 2px; background-color: #212529;"></div>
+                        <!-- Return -->
+                        <div class="d-flex align-items-start mt-4">
+                            <i class="bi bi-geo-alt-fill text-dark me-3 fs-5"></i>
+                            <div>
+                                <p class="text-muted mb-1">Return Location</p>
+                                <p class="fw-bold mb-0">{{ return_location }}</p>
+                                <p class="text-muted mb-0">{{ return_date }} | {{ return_time }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Total and Reserve Button -->
+        <div class="col-lg-4 mb-5">
+            <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
+                <div class="card-body p-4">
+                    <form id="bookingForm" method="POST" action="{% url 'car_booking' car.id %}">
+                        {% csrf_token %}
+                        <!-- Hidden Inputs for Booking Details -->
+                        <input type="hidden" name="pickup_location" value="{{ pickup_location }}">
+                        <input type="hidden" name="return_location" value="{{ return_location }}">
+                        <input type="hidden" name="pickup_date" value="{{ pickup_date }}">
+                        <input type="hidden" name="return_date" value="{{ return_date }}">
+                        <input type="hidden" name="pickup_time" value="{{ pickup_time }}">
+                        <input type="hidden" name="return_time" value="{{ return_time }}">
+                        <input type="hidden" name="total_cost" value="{{ total_cost }}">
+
+                        <h5 class="fw-bold mb-3">Your Booking Summary</h5>
+                        <div class="mb-3">
+                            <p class="text-muted mb-1">Base Price ({{ rental_days }} days)</p>
+                            <p class="fw-bold">Kshs {{ total_cost }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <p class="text-muted mb-1">Extras</p>
+                            <p class="fw-bold">Kshs 0.00</p>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold">Total</h6>
+                            <h6 class="fw-bold">Kshs {{ total_cost }}</h6>
+                        </div>
+                        <button type="button" class="btn btn-dark w-100 py-3 rounded-pill mb-4" id="reserveButton">Let’s Roll! Reserve Now</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-  
 
+<!-- Authentication Modal -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="authModalLabel">Complete Your Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Messages -->
+                <div id="modalMessages" class="mb-3"></div>
 
+                <!-- Initial State: Login or Register -->
+                <div id="authInitial" {% if not require_login %}style="display: none;"{% endif %}>
+                    <div class="text-center mb-4">
+                        <h6>Please log in or register to proceed with your booking.</h6>
+                    </div>
+                    <div class="d-flex justify-content-around">
+                        <button class="btn btn-outline-dark rounded-pill px-4" onclick="showLoginForm()">Log In</button>
+                        <button class="btn btn-dark rounded-pill px-4" onclick="showEmailVerification()">Register</button>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <div id="loginForm" style="display: none;">
+                    <h6 class="mb-3">Log In</h6>
+                    <form id="loginFormElement" onsubmit="handleLogin(event)">
+                        <div class="mb-3">
+                            <label for="loginUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="loginUsername" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 rounded-pill">Log In</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-link" onclick="showAuthInitial()">Back</button>
+                    </div>
+                </div>
+
+                <!-- Email Verification: Step 1 (Enter Email) -->
+                <div id="emailVerification" style="display: none;">
+                    <h6 class="mb-3">Verify Your Email Address</h6>
+                    <form id="emailVerificationForm" onsubmit="handleEmailVerification(event)">
+                        <div class="mb-3">
+                            <label for="emailAddress" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="emailAddress" name="email" placeholder="example@domain.com" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 rounded-pill">Send Verification Code</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-link" onclick="showAuthInitial()">Back</button>
+                    </div>
+                </div>
+
+                <!-- Email Verification: Step 2 (Enter Code) -->
+                <div id="codeVerification" style="display: none;">
+                    <h6 class="mb-3">Enter Verification Code</h6>
+                    <form id="codeVerificationForm" onsubmit="handleCodeVerification(event)">
+                        <div class="mb-3">
+                            <label for="verificationCode" class="form-label">Code</label>
+                            <input type="text" class="form-control" id="verificationCode" name="code" required>
+                            <input type="hidden" id="verifiedEmailAddress" name="email">
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 rounded-pill">Verify Code</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-link" onclick="showEmailVerification()">Back</button>
+                    </div>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signupForm" style="display: none;">
+                    <h6 class="mb-3">Sign Up</h6>
+                    <form id="signupFormElement" onsubmit="handleSignup(event)">
+                        <input type="hidden" id="signupEmail" name="email">
+                        <div class="mb-3">
+                            <label for="signupUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="signupUsername" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupPhoneNumber" class="form-label">Phone Number (e.g., +2547XXXXXXXX)</label>
+                            <input type="tel" class="form-control" id="signupPhoneNumber" name="phone_number" placeholder="+2547XXXXXXXX" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupRole" class="form-label">Role</label>
+                            <select class="form-select" id="signupRole" name="role" required>
+                                <option value="renter">Renter</option>
+                                <option value="owner">Car Owner</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="signupPassword" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="signupConfirmPassword" name="confirm_password" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 rounded-pill">Sign Up</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-link" onclick="showCodeVerification()">Back</button>
+                    </div>
+                </div>
+
+                <!-- Profile Creation Form -->
+                <div id="profileCreationForm" {% if not require_profile_creation or require_login %}style="display: none;"{% endif %}>
+                    <h6 class="mb-3">Create Your Renter Profile</h6>
+                    <form id="profileCreationFormElement" onsubmit="handleProfileCreation(event)" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="profileWhatsappNumber" class="form-label">WhatsApp Number (e.g., +2547XXXXXXXX)</label>
+                            <input type="tel" class="form-control" id="profileWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileAge" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="profileAge" name="age" min="18" max="120" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="idImage" class="form-label">ID Image</label>
+                            <input type="file" class="form-control" id="idImage" name="id_image" accept="image/*" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="drivingLicenseImage" class="form-label">Driving License Image</label>
+                            <input type="file" class="form-control" id="drivingLicenseImage" name="driving_license_image" accept="image/*" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 rounded-pill">Create Profile</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS and jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Show the modal if login or profile creation is required
+    $(document).ready(function() {
+        const requireLogin = {{ require_login|yesno:"true,false" }};
+        const requireProfileCreation = {{ require_profile_creation|yesno:"true,false" }};
+
+        $('#reserveButton').click(function() {
+            if (requireLogin) {
+                $('#authModal').modal('show');
+                showAuthInitial();
+            } else if (requireProfileCreation) {
+                $('#authModal').modal('show');
+                showProfileCreationForm();
+            } else {
+                $('#bookingForm').submit();
+            }
+        });
+
+        // Handle modal close: reset forms and state
+        $('#authModal').on('hidden.bs.modal', function() {
+            resetModal();
+        });
+    });
+
+    // Modal state management
+    function showAuthInitial() {
+        hideAllSections();
+        $('#authInitial').show();
+        $('#authModalLabel').text('Complete Your Booking');
+    }
+
+    function showLoginForm() {
+        hideAllSections();
+        $('#loginForm').show();
+        $('#authModalLabel').text('Log In');
+    }
+
+    function showEmailVerification() {
+        hideAllSections();
+        $('#emailVerification').show();
+        $('#authModalLabel').text('Verify Your Email Address');
+    }
+
+    function showCodeVerification() {
+        hideAllSections();
+        $('#codeVerification').show();
+        $('#authModalLabel').text('Enter Verification Code');
+    }
+
+    function showSignupForm() {
+        hideAllSections();
+        $('#signupForm').show();
+        $('#authModalLabel').text('Sign Up');
+    }
+
+    function showProfileCreationForm() {
+        hideAllSections();
+        $('#profileCreationForm').show();
+        $('#authModalLabel').text('Create Your Renter Profile');
+    }
+
+    function hideAllSections() {
+        $('#authInitial').hide();
+        $('#loginForm').hide();
+        $('#emailVerification').hide();
+        $('#codeVerification').hide();
+        $('#signupForm').hide();
+        $('#profileCreationForm').hide();
+        $('#modalMessages').empty();
+    }
+
+    function resetModal() {
+        hideAllSections();
+        $('#authInitial').show();
+        $('#authModalLabel').text('Complete Your Booking');
+        $('#modalMessages').empty();
+        // Reset forms
+        $('#loginFormElement')[0].reset();
+        $('#emailVerificationForm')[0].reset();
+        $('#codeVerificationForm')[0].reset();
+        $('#signupFormElement')[0].reset();
+        $('#profileCreationFormElement')[0].reset();
+    }
+
+    function showMessage(message, type = 'success') {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        $('#modalMessages').html(`<div class="alert ${alertClass}">${message}</div>`);
+    }
+
+    <!-- Inside the <script> tag in car_booking.html -->
+    // Form handlers
+    function handleLogin(event) {
+        event.preventDefault();
+        const formData = new FormData(document.getElementById('loginFormElement'));
+
+        $.ajax({
+            url: "{% url 'login' %}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === "success" || response.status === true) {
+                    showMessage(response.message);
+                    // Check if profile creation is needed
+                    $.ajax({
+                        url: "{% url 'car_booking' car.id %}?check_profile=true",
+                        type: "GET",
+                        success: function(data) {
+                            if (data.require_profile_creation) {
+                                showProfileCreationForm();
+                            } else {
+                                $('#authModal').modal('hide');
+                                $('#bookingForm').submit();
+                            }
+                        }
+                    });
+                } else {
+                    showMessage(response.message || response.error, 'error');
+                }
+            },
+            error: function() {
+                showMessage("An error occurred. Please try again.", 'error');
+            }
+        });
+    }
+
+    function handleEmailVerification(event) {
+        event.preventDefault();
+        const formData = new FormData(document.getElementById('emailVerificationForm'));
+        const email = formData.get('email');
+
+        $.ajax({
+            url: "{% url 'send_verification_code' %}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === true) {
+                    showMessage(response.message);
+                    $('#verifiedEmailAddress').val(email);
+                    $('#signupEmail').val(email);
+                    showCodeVerification();
+                } else {
+                    showMessage(response.error, 'error');
+                }
+            },
+            error: function() {
+                showMessage("An error occurred. Please try again.", 'error');
+            }
+        });
+    }
+
+    function handleCodeVerification(event) {
+        event.preventDefault();
+        const formData = new FormData(document.getElementById('codeVerificationForm'));
+
+        $.ajax({
+            url: "{% url 'verify_email_code' %}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === true) {
+                    showMessage(response.message);
+                    showSignupForm();
+                } else {
+                    showMessage(response.error, 'error');
+                }
+            },
+            error: function() {
+                showMessage("An error occurred. Please try again.", 'error');
+            }
+        });
+    }
+
+    function handleSignup(event) {
+        event.preventDefault();
+        const formData = new FormData(document.getElementById('signupFormElement'));
+
+        $.ajax({
+            url: "{% url 'signup' %}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === true) {
+                    showMessage(response.message);
+                    showProfileCreationForm();
+                } else {
+                    showMessage(response.error, 'error');
+                }
+            },
+            error: function() {
+                showMessage("An error occurred. Please try again.", 'error');
+            }
+        });
+    }
+
+    function handleProfileCreation(event) {
+        event.preventDefault();
+        const formData = new FormData(document.getElementById('profileCreationFormElement'));
+
+        $.ajax({
+            url: "{% url 'create_profile' %}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === true) {
+                    showMessage(response.message);
+                    $('#authModal').modal('hide');
+                    $('#bookingForm').submit();
+                } else {
+                    showMessage(response.error, 'error');
+                }
+            },
+            error: function() {
+                showMessage("An error occurred. Please try again.", 'error');
+            }
+        });
+    }
+</script>
 {% endblock %}

@@ -7,7 +7,9 @@ urlpatterns = [
     path("send-verification-code/", send_verification_code, name="send_verification_code"),
     path("verify-email-code/", verify_email_code, name="verify_email_code"),
     path("signup/", user_signup, name="signup"),
-    path("logout/", user_logout, name="logout"),
+    path("logout/", logout_user, name="logout"),
+    path("create_profile/", create_renter_profile, name="create_profile"),
+    path("edit_profile/", update_renter_profile, name="edit_profile"),
 
     
     # Lister Endpoints

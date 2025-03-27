@@ -4,21 +4,31 @@ from .models import User
 import random
 import smtplib
 from django.core.mail import send_mail
+import logging
+from django.conf import settings
+from django.shortcuts import redirect
 
 def generate_verification_code():
     """Generate a 6-digit random verification code."""
     return str(random.randint(100000, 999999))
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
 def send_verification_email(email, code):
     """Send a verification code to the user's email."""
     subject = "Your Email Verification Code"
     message = f"Use this code to verify your email: {code}"
-    from_email = "noreply@yourapp.com"  # Replace with your email
+    from_email = settings.DEFAULT_FROM_EMAIL  # Use the configured email
     recipient_list = [email]
 
-    send_mail(subject, message, from_email, recipient_list)
-
-    return True
+    try:
+        send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+        logger.info(f"Verification email sent to {email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send verification email to {email}: {str(e)}")
+        return False
 
 
 def register_user(username, email, phone_number, role, password, confirm_password):
@@ -48,17 +58,16 @@ def register_user(username, email, phone_number, role, password, confirm_passwor
     }
 
 
-def authenticate_user(request, username, password):
+def authenticate_user_func(request, username, password):
     """Handles user authentication and logs them in if valid."""
+    if not username or not password:
+        return {"status": False, "error": "Username and password are required"}
+
     user = authenticate(request, username=username, password=password)
 
     if user:
         login(request, user)
-        return {"status": True, "user": user}
+        return {"status": True, "user": user.username}
     else:
         return {"status": False, "error": "Invalid credentials"}
-
-def logout_user(request):
-    """Logs out the user."""
-    logout(request)
-    return {"status": True}
+    

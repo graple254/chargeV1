@@ -1,0 +1,22 @@
+{% extends 'renter/base_renter.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="container px-5 py-5">
+    <h2 class="fw-bold mb-4">Profile</h2>
+    {% if user.is_authenticated %}
+        {% if profile %}
+            <div class="car-card">
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Phone Number:</strong> {{ user.phone_number }}</p>
+                <p><strong>WhatsApp Number:</strong> {{ profile.whatsapp_number }}</p>
+                <p><strong>Age:</strong> {{ profile.age }}</p>
+            </div>
+        {% else %}
+            <p>No profile found. Please create a profile.</p>
+        {% endif %}
+    {% else %}
+        <p>Please log in to view your profile.</p>
+    {% endif %}
+</div>
+{% endblock %}
