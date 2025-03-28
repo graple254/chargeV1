@@ -33,7 +33,6 @@ def send_verification_email(email, code):
 
 def register_user(username, email, phone_number, role, password, confirm_password):
     """Handles user registration and returns a dictionary with the result."""
-
     if password != confirm_password:
         return {"status": False, "error": "Passwords do not match"}
 
@@ -47,11 +46,10 @@ def register_user(username, email, phone_number, role, password, confirm_passwor
         username=username,
         email=email,
         phone_number=phone_number,
-        role=role,
+        role=role,  # Now "RENTER" or "LISTER", which matches ROLE_CHOICES
         password=make_password(password)  # Hash the password
     )
 
-    # ✅ Return only serializable user data
     return {
         "status": True,
         "user": user.username

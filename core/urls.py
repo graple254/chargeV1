@@ -10,6 +10,7 @@ urlpatterns = [
     path("logout/", logout_user, name="logout"),
     path("create_profile/", create_renter_profile, name="create_profile"),
     path("edit_profile/", update_renter_profile, name="edit_profile"),
+    path("check-auth-status/", check_auth_status, name="check_auth_status"),
 
     
     # Lister Endpoints
@@ -41,5 +42,5 @@ urlpatterns = [
     path("cars/", car_list, name="car_list"),
     path("cars/<int:car_id>/book/", car_booking, name="car_booking"),
     path("bookings/", my_trips, name="booking_history"),
-    path("profile/", renter_profile, name="renter_profile"),
+    path("renter_profile/", renter_profile, name="renter_profile"),
 ]

@@ -53,8 +53,13 @@
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 small fw-bolder">
                             <li class="nav-item"><a class="nav-link" href="{% url 'start' %}">Book Car</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'booking_history' %}">My Trips</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'renter_profile' %}">Profile</a></li>
+                            {% if user.is_authenticated %}
+                                <li class="nav-item"><a class="nav-link" href="{% url 'booking_history' %}">My Trips</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{% url 'renter_profile' %}">Profile</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
+                            {% else %}
+                                <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                            {% endif %}
                         </ul>
                     </div>
                 </div>
@@ -75,27 +80,33 @@
             {% block content %}{% endblock %}
             
         </main>
-
         <!-- Bottom Navigation for Small Screens -->
         <nav class="navbar navbar-light bg-white fixed-bottom d-lg-none border-top">
             <div class="container d-flex justify-content-around py-2">
-                <!-- Book Car -->
-                <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
-                    <i class="bi bi-bag fs-4"></i>
-                    <div class="small">Book Car</div>
-                </a>
+            <!-- Book Car -->
+            <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
+                <i class="bi bi-bag fs-4"></i>
+                <div class="small">Book Car</div>
+            </a>
           
-                <!-- My Trips -->
+            <!-- My Trips / Login -->
+            {% if user.is_authenticated %}
                 <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
-                    <i class="bi bi-record-circle fs-4"></i>
-                    <div class="small">My Trips</div>
+                <i class="bi bi-record-circle fs-4"></i>
+                <div class="small">My Trips</div>
                 </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="text-decoration-none text-dark text-center">
+                <i class="bi bi-box-arrow-in-right fs-4"></i>
+                <div class="small">Login</div>
+                </a>
+            {% endif %}
           
-                <!-- More (Triggers Offcanvas) -->
-                <a href="#" class="text-decoration-none text-dark text-center" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMore">
-                    <i class="bi bi-list fs-4"></i>
-                    <div class="small">More</div>
-                </a>
+            <!-- More (Triggers Offcanvas) -->
+            <a href="#" class="text-decoration-none text-dark text-center" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMore">
+                <i class="bi bi-list fs-4"></i>
+                <div class="small">More</div>
+            </a>
             </div>
         </nav>
 

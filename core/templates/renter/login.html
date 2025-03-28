@@ -1,0 +1,465 @@
+<!-- templates/renter/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charge | Login or Register</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-card {
+            max-width: 500px;
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .auth-card .card-header {
+            background-color: #212529;
+            color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            text-align: center;
+            padding: 20px;
+        }
+        .auth-card .card-body {
+            padding: 30px;
+        }
+        .btn-primary {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-primary:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        .btn-outline-primary {
+            color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-outline-primary:hover {
+            background-color: #28a745;
+            color: white;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .text-primary {
+            color: #28a745 !important;
+        }
+        .alert {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card auth-card">
+        <div class="card-header">
+            <h3 class="mb-0">Charge</h3>
+            <p class="mb-0">Drive Easy with Charge</p>
+        </div>
+        <div class="card-body">
+            <!-- Messages -->
+            <div id="authMessages" class="mb-3">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Initial State: Login or Register -->
+            <div id="authInitial">
+                <div class="text-center mb-4">
+                    <h5>Welcome to Charge</h5>
+                    <p>Please log in or register to continue.</p>
+                </div>
+                <div class="d-flex justify-content-around">
+                    <button class="btn btn-outline-primary rounded-pill px-4" onclick="showLoginForm()">Log In</button>
+                    <button class="btn btn-primary rounded-pill px-4" onclick="showEmailVerification()">Register</button>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" style="display: none;">
+                <h5 class="mb-3">Log In</h5>
+                <form id="loginFormElement" onsubmit="handleLogin(event)">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="loginUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="loginUsername" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Log In</button>
+                </form>
+                <div class="text-center mt-3">
+                    <button class="btn btn-link text-primary" onclick="showAuthInitial()">Back</button>
+                </div>
+            </div>
+
+            <!-- Email Verification: Step 1 (Enter Email) -->
+            <div id="emailVerification" style="display: none;">
+                <h5 class="mb-3">Verify Your Email Address</h5>
+                <form id="emailVerificationForm" onsubmit="handleEmailVerification(event)">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="emailAddress" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="emailAddress" name="email" placeholder="example@domain.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Send Verification Code</button>
+                </form>
+                <div class="text-center mt-3">
+                    <button class="btn btn-link text-primary" onclick="showAuthInitial()">Back</button>
+                </div>
+            </div>
+
+            <!-- Email Verification: Step 2 (Enter Code) -->
+            <div id="codeVerification" style="display: none;">
+                <h5 class="mb-3">Enter Verification Code</h5>
+                <form id="codeVerificationForm" onsubmit="handleCodeVerification(event)">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="verificationCode" class="form-label">Code</label>
+                        <input type="text" class="form-control" id="verificationCode" name="code" required>
+                        <input type="hidden" id="verifiedEmailAddress" name="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Verify Code</button>
+                </form>
+                <div class="text-center mt-3">
+                    <button class="btn btn-link text-primary" onclick="showEmailVerification()">Back</button>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" style="display: none;">
+                <h5 class="mb-3">Sign Up</h5>
+                <form id="signupFormElement" onsubmit="handleSignup(event)">
+                    {% csrf_token %}
+                    <input type="hidden" id="signupEmail" name="email">
+                    <div class="mb-3">
+                        <label for="signupUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="signupUsername" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signupPhoneNumber" class="form-label">Phone Number (e.g., +2547XXXXXXXX)</label>
+                        <input type="tel" class="form-control" id="signupPhoneNumber" name="phone_number" placeholder="+2547XXXXXXXX" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signupRole" class="form-label">Role</label>
+                        <select class="form-select" id="signupRole" name="role" required>
+                            <option value="RENTER">Renter</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signupPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="signupPassword" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signupConfirmPassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="signupConfirmPassword" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Sign Up</button>
+                </form>
+                <div class="text-center mt-3">
+                    <button class="btn btn-link text-primary" onclick="showCodeVerification()">Back</button>
+                </div>
+            </div>
+
+            <!-- Profile Creation Form -->
+            <div id="profileCreationForm" style="display: none;">
+                <h5 class="mb-3" id="profileCreationTitle">Create Your Renter Profile</h5>
+                <form id="profileCreationFormElement" onsubmit="handleProfileCreation(event)" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" id="profileRole" name="role" value="renter">
+                    <div class="mb-3">
+                        <label for="profileWhatsappNumber" class="form-label">WhatsApp Number (e.g., +2547XXXXXXXX)</label>
+                        <input type="tel" class="form-control" id="profileWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="profileAge" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="profileAge" name="age" min="18" max="120" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="idImage" class="form-label">ID Image</label>
+                        <input type="file" class="form-control" id="idImage" name="id_image" accept="image/*" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="drivingLicenseImage" class="form-label">Driving License Image</label>
+                        <input type="file" class="form-control" id="drivingLicenseImage" name="driving_license_image" accept="image/*" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Create Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery and Bootstrap 5 JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Get the 'next' URL from context
+        const nextUrl = "{{ next|escapejs }}";
+
+        // Set up CSRF token for AJAX requests
+        $(document).ready(function() {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", $('[name=csrfmiddlewaretoken]').val());
+                    }
+                }
+            });
+
+            // Check if user is authenticated and has a profile on page load
+            $.ajax({
+                url: "{% url 'check_auth_status' %}",
+                type: "GET",
+                success: function(response) {
+                    console.log("check_auth_status response:", response); // Debug: Log the response
+                    if (response.is_authenticated) {
+                        if (!response.has_profile) {
+                            $('#profileRole').val('renter'); // Hardcode to renter since we're only dealing with renters
+                            $('#profileCreationTitle').text('Create Your Renter Profile');
+                            showProfileCreationForm();
+                        } else {
+                            window.location.href = nextUrl;
+                        }
+                    } else {
+                        showAuthInitial();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("check_auth_status error:", xhr, status, error); // Debug: Log the error
+                    showMessage("An error occurred. Please try again.", 'error');
+                    showAuthInitial();
+                }
+            });
+        });
+
+        // State management
+        function showAuthInitial() {
+            hideAllSections();
+            $('#authInitial').show();
+        }
+
+        function showLoginForm() {
+            hideAllSections();
+            $('#loginForm').show();
+        }
+
+        function showEmailVerification() {
+            hideAllSections();
+            $('#emailVerification').show();
+        }
+
+        function showCodeVerification() {
+            hideAllSections();
+            $('#codeVerification').show();
+        }
+
+        function showSignupForm() {
+            hideAllSections();
+            $('#signupForm').show();
+        }
+
+        function showProfileCreationForm() {
+            hideAllSections();
+            $('#profileCreationForm').show();
+        }
+
+        function hideAllSections() {
+            $('#authInitial').hide();
+            $('#loginForm').hide();
+            $('#emailVerification').hide();
+            $('#codeVerification').hide();
+            $('#signupForm').hide();
+            $('#profileCreationForm').hide();
+            $('#authMessages').empty();
+        }
+
+        function showMessage(message, type = 'success') {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            $('#authMessages').html(`<div class="alert ${alertClass}">${message}</div>`);
+        }
+
+        // Form handlers
+        function handleLogin(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('loginFormElement'));
+
+            $.ajax({
+                url: "{% url 'login' %}",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("handleLogin response:", response); // Debug: Log the response
+                    if (response.status === true) {
+                        showMessage(response.message);
+                        // Check if profile creation is needed
+                        $.ajax({
+                            url: "{% url 'check_auth_status' %}",
+                            type: "GET",
+                            success: function(data) {
+                                console.log("check_auth_status after login:", data); // Debug: Log the response
+                                if (data.is_authenticated && !data.has_profile) {
+                                    $('#profileRole').val('renter'); // Hardcode to renter
+                                    $('#profileCreationTitle').text('Create Your Renter Profile');
+                                    showProfileCreationForm();
+                                } else {
+                                    window.location.href = nextUrl;
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.log("check_auth_status error after login:", xhr, status, error); // Debug: Log the error
+                                showMessage("An error occurred. Please try again.", 'error');
+                            }
+                        });
+                    } else {
+                        showMessage(response.error, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("handleLogin error:", xhr, status, error); // Debug: Log the error
+                    showMessage("An error occurred. Please try again.", 'error');
+                }
+            });
+        }
+
+        function handleEmailVerification(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('emailVerificationForm'));
+            const email = formData.get('email');
+
+            $.ajax({
+                url: "{% url 'send_verification_code' %}",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("handleEmailVerification response:", response); // Debug: Log the response
+                    if (response.status === true) {
+                        showMessage(response.message);
+                        $('#verifiedEmailAddress').val(email);
+                        $('#signupEmail').val(email);
+                        showCodeVerification();
+                    } else {
+                        showMessage(response.error, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("handleEmailVerification error:", xhr, status, error); // Debug: Log the error
+                    showMessage("An error occurred. Please try again.", 'error');
+                }
+            });
+        }
+
+        function handleCodeVerification(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('codeVerificationForm'));
+
+            $.ajax({
+                url: "{% url 'verify_email_code' %}",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("handleCodeVerification response:", response); // Debug: Log the response
+                    if (response.status === true) {
+                        showMessage(response.message);
+                        showSignupForm();
+                    } else {
+                        showMessage(response.error, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("handleCodeVerification error:", xhr, status, error); // Debug: Log the error
+                    showMessage("An error occurred. Please try again.", 'error');
+                }
+            });
+        }
+
+        function handleSignup(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('signupFormElement'));
+
+            $.ajax({
+                url: "{% url 'signup' %}",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("handleSignup response:", response); // Debug: Log the response
+                    if (response.status === true) {
+                        showMessage(response.message);
+                        // After signup, show the profile creation form for renters
+                        $('#profileRole').val('renter'); // Hardcode to renter
+                        $('#profileCreationTitle').text('Create Your Renter Profile');
+                        showProfileCreationForm();
+                    } else {
+                        showMessage(response.error, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("handleSignup error:", xhr, status, error); // Debug: Log the error
+                    showMessage("An error occurred. Please try again.", 'error');
+                }
+            });
+        }
+
+        function handleProfileCreation(event) {
+            event.preventDefault();
+            console.log("handleProfileCreation triggered"); // Debug: Check if the function is called
+
+            const form = document.getElementById('profileCreationFormElement');
+            const formData = new FormData(form);
+            const url = "{% url 'create_profile' %}"; // Hardcode to renter profile creation URL
+
+            console.log("Form Data:", Array.from(formData.entries())); // Debug: Log form data
+            console.log("URL:", url); // Debug: Log the URL being used
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log("Success response:", response); // Debug: Log the response
+                    if (response.success === true) {
+                        showMessage(response.message);
+                        console.log("Redirecting to:", nextUrl); // Debug: Log the redirect URL
+                        window.location.href = nextUrl;
+                    } else {
+                        showMessage(response.message, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", xhr, status, error); // Debug: Log the error
+                    showMessage("An error occurred: " + (xhr.responseJSON ? xhr.responseJSON.message : error), 'error');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
