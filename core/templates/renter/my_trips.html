@@ -1,11 +1,39 @@
+
+
+
 {% extends 'renter/base_renter.html' %}
 {% block title %}My Trips{% endblock %}
 {% block content %}
 <div class="container px-4 py-5 mb-5">
-    <h2 class="fw-bold mb-4">My Trips</h2>
+    <h2 class="fw-bold mb-4">My Bookings</h2>
+    {% if new_booking %}
+        <!-- Modal -->
+        <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+            <div class="modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="bookingModalLabel">Booking Confirmation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h5 id="whatsappModalLabel">Redirecting to WhatsApp...</h5>
+                        <p class="text-muted">You are being redirected to a WhatsApp chat with the lister to confirm your booking and come to an agreement.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            window.addEventListener('load', function() {
+                var myModal = new bootstrap.Modal(document.getElementById('bookingModal'));
+                myModal.show();
+            });
+        </script>
+    {% endif %}
+
     {% if user.is_authenticated %}
         {% if bookings %}
-            <!-- Accordion for bookings -->
+            <!-- Accordion fo</div>r bookings -->
             <div class="accordion" id="bookingsAccordion">
                 {% for booking in bookings %}
                     <div class="accordion-item mb-3">
@@ -93,7 +121,7 @@
             </div>
         {% else %}
             <div class="alert alert-info" role="alert">
-                You have no bookings yet. <a href="{% url 'car_list' %}" class="alert-link">Book a car now!</a>
+                You have no bookings yet. <a href="{% url 'start' %}" class="alert-link">Book a car now!</a>
             </div>
         {% endif %}
     {% else %}

@@ -54,7 +54,7 @@
                         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 small fw-bolder">
                             <li class="nav-item"><a class="nav-link" href="{% url 'start' %}">Book Car</a></li>
                             {% if user.is_authenticated %}
-                                <li class="nav-item"><a class="nav-link" href="{% url 'booking_history' %}">My Trips</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{% url 'booking_history' %}">My Bookings</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{% url 'renter_profile' %}">Profile</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
                             {% else %}
@@ -93,7 +93,7 @@
             {% if user.is_authenticated %}
                 <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
                 <i class="bi bi-record-circle fs-4"></i>
-                <div class="small">My Trips</div>
+                <div class="small">My Bookings</div>
                 </a>
             {% else %}
                 <a href="{% url 'login' %}" class="text-decoration-none text-dark text-center">

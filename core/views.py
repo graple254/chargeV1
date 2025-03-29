@@ -681,7 +681,11 @@ def car_booking(request, car_id):
                 created_at=now()
             )
 
-            messages.success(request, "Booking successful! A confirmation has been sent to your phone.")
+
+            # Set session variable to indicate a new booking
+            request.session["new_booking"] = True
+
+            messages.success(request, "Booking successful! You are being Redirected To Chat with the Lister In a Few Minutes.")
             return redirect("booking_history")
         except Exception as e:
             print(f"Booking failed: {str(e)}")
@@ -699,8 +703,7 @@ def car_booking(request, car_id):
     return render(request, "renter/car_booking.html", context)
 
 
-
-# core/views.py
+# Booking history view
 @login_required
 @role_required("Renter")
 def my_trips(request):
@@ -708,7 +711,11 @@ def my_trips(request):
     renter = request.user
     bookings = Booking.objects.filter(renter=renter).order_by("-created_at")  # Show latest bookings first
 
-    return render(request, "renter/my_trips.html", {"bookings": bookings, "require_login": False})
+    # Retrieve and remove `new_booking` from session
+    new_booking = request.session.pop("new_booking", False)
+
+    return render(request, "renter/my_trips.html", {"bookings": bookings, "new_booking": new_booking})
+
 
 
 @login_required
