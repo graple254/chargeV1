@@ -88,14 +88,14 @@
             <div class="container d-flex justify-content-around py-2">
             <!-- Book Car -->
             <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
-                <i class="bi bi-bag fs-4"></i>
+                <i class="bi bi-truck fs-4"></i>
                 <div class="small">Book Car</div>
             </a>
           
             <!-- My Trips / Login -->
             {% if user.is_authenticated %}
                 <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
-                <i class="bi bi-record-circle fs-4"></i>
+                <i class="bi bi-bookmarks fs-4"></i>
                 <div class="small">My Bookings</div>
                 </a>
             {% else %}
