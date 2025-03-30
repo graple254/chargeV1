@@ -558,6 +558,7 @@ def car_list(request):
         "page_obj": page_obj,  # Pass page_obj for pagination controls
     })
 
+
 @login_required
 def car_booking(request, car_id):
     """Handles the car booking process."""
@@ -587,10 +588,13 @@ def car_booking(request, car_id):
         messages.error(request, "Incomplete booking details. Please start again.")
         return redirect("start")
 
-    # Convert to datetime objects
+    # Convert to datetime objects and make them aware
     try:
         pickup_datetime = datetime.strptime(f"{pickup_date} {pickup_time}", "%Y-%m-%d %H:%M")
         return_datetime = datetime.strptime(f"{return_date} {return_time}", "%Y-%m-%d %H:%M")
+        # Make the datetimes aware using the project's time zone
+        pickup_datetime = timezone.make_aware(pickup_datetime)
+        return_datetime = timezone.make_aware(return_datetime)
     except ValueError:
         print("Invalid date format. Please try again.")
         messages.error(request, "Invalid date format. Please try again.")
@@ -661,26 +665,21 @@ def car_booking(request, car_id):
 
     if request.method == "POST":
         try:
-            # Extract dates from datetime objects
-            start_date = pickup_datetime.date()
-            end_date = return_datetime.date()
-
             # Convert total_cost to Decimal
             total_cost_decimal = decimal.Decimal(str(total_cost))
 
-            # Create the booking
+            # Create the booking with aware datetime objects
             booking = Booking.objects.create(
                 renter=request.user,
                 car=car,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=pickup_datetime,  # Now aware
+                end_date=return_datetime,    # Now aware
                 pickup_location=pickup_location,
                 return_location=return_location,
                 total_cost=total_cost_decimal,
-                status="PENDING",
-                created_at=now()
+                status="COMPLETED",
+                created_at=timezone.now()  # Use timezone.now() instead of undefined now()
             )
-
 
             # Set session variable to indicate a new booking
             request.session["new_booking"] = True
@@ -701,6 +700,7 @@ def car_booking(request, car_id):
             return redirect(f"/cars/{car.id}/book/?{query_params}")
 
     return render(request, "renter/car_booking.html", context)
+
 
 
 # Booking history view

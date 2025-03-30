@@ -64,17 +64,20 @@
                     </div>
                 </div>
             </nav>
-
-            <!-- Messages -->
+            
             {% if messages %}
-                <div class="container mt-3">
-                    {% for message in messages %}
-                        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}" role="alert">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+            <div class="container mt-3">
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        {% for message in messages %}
+                            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} mb-3" role="alert">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
                 </div>
-            {% endif %}
+            </div>
+        {% endif %}
 
             <!-- Content-->
             {% block content %}{% endblock %}

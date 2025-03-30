@@ -183,16 +183,15 @@ class CarAvailability(models.Model):
         return f"Unavailable: {self.car.make} {self.car.model} ({self.start_date} - {self.end_date})"
 
 
-# Booking - Tracks rental details
-
+#Booking - Represents a booking made by a renter for a car
 class Booking(models.Model):
     renter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='bookings')
-    start_date = models.DateField(blank=True, null=True)
-    end_date = models.DateField(blank=True, null=True)
+    start_date = models.DateTimeField(blank=True, null=True)
+    end_date = models.DateTimeField(blank=True, null=True)
     pickup_location = models.CharField(max_length=255, blank=True, null=True)
     return_location = models.CharField(max_length=255, blank=True, null=True)
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)  # Added total cost field
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     STATUS_CHOICES = (
@@ -201,14 +200,17 @@ class Booking(models.Model):
         ('CANCELLED', 'Cancelled'),
         ('COMPLETED', 'Completed'),
     )
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='COMPLETED')
 
     def clean(self):
-        if self.start_date < timezone.now().date():
-            raise ValidationError("Start date cannot be in the past.")
-        if self.end_date < self.start_date:
-            raise ValidationError("End date must be after the start date.")
-        if self.total_cost <= 0:
+        # Check if start_date is in the past, comparing datetime to datetime
+        if self.start_date and self.start_date < timezone.now():
+            raise ValidationError("Start datetime cannot be in the past.")
+        # Check if end_date is before start_date
+        if self.end_date and self.start_date and self.end_date < self.start_date:
+            raise ValidationError("End datetime must be after the start datetime.")
+        # Check if total_cost is valid
+        if self.total_cost is not None and self.total_cost <= 0:
             raise ValidationError("Total cost must be greater than zero.")
 
     def save(self, *args, **kwargs):
@@ -217,6 +219,7 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"Booking: {self.car} by {self.renter.username} from {self.start_date} to {self.end_date}"
+
 
 
 # this are like the rules set by the car lister
