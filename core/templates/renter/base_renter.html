@@ -60,6 +60,7 @@
                             {% else %}
                                 <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
                             {% endif %}
+                            <li class="nav-item"><a class="nav-link" id="support-link" href="#">Customer Support</a></li>
                         </ul>
                     </div>
                 </div>
@@ -140,7 +141,7 @@
                     </li>
                     <li class="list-group-item d-flex align-items-center py-3">
                         <i class="bi bi-headset me-3 fs-5 text-dark"></i>
-                        <a href="#" class="text-decoration-none flex-grow-1 text-dark">Customer Support</a>
+                        <a id="support-link" href="#" class="text-decoration-none flex-grow-1 text-dark">Customer Support</a>
                         <i class="bi bi-chevron-right text-muted"></i>
                     </li>
                     <li class="list-group-item d-flex align-items-center py-3">
@@ -152,87 +153,24 @@
             </div>
         </div>
 
-        <!-- Login Modal -->
-        <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="loginModalLabel">Log In</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Messages -->
-                        <div id="loginModalMessages" class="mb-3"></div>
-
-                        <!-- Login Form -->
-                        <form id="loginFormElement" onsubmit="handleLogin(event)">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="loginUsername" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="loginUsername" name="username" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="loginPassword" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="loginPassword" name="password" required>
-                            </div>
-                            <button type="submit" class="btn btn-dark w-100 rounded-pill">Log In</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Bootstrap core JS and jQuery -->
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
         <script src="{% static 'files/renter/js/scripts.js' %}"></script>
         <script>
-            $(document).ready(function() {
-                // Check if the page requires login (set by the view)
-                const requireLogin = {{ require_login|yesno:"true,false" }};
-
-                if (requireLogin) {
-                    $('#loginModal').modal('show');
+            document.addEventListener('DOMContentLoaded', function() {
+                var supportLink = document.getElementById('support-link');
+                var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                var whatsappNumber = '254789578946';
+                var message = encodeURIComponent('Hello 👋, I need customer support.');
+            
+                if (isMobile) {
+                    supportLink.href = 'https://wa.me/' + whatsappNumber + '?text=' + message;
+                } else {
+                    supportLink.href = 'https://web.whatsapp.com/send?phone=' + whatsappNumber + '&text=' + message;
                 }
-
-                // Handle modal close: reset form and messages
-                $('#loginModal').on('hidden.bs.modal', function() {
-                    $('#loginModalMessages').empty();
-                    $('#loginFormElement')[0].reset();
-                });
             });
-
-            function showMessage(message, type = 'success') {
-                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-                $('#loginModalMessages').html(`<div class="alert ${alertClass}">${message}</div>`);
-            }
-
-            function handleLogin(event) {
-                event.preventDefault();
-                const formData = new FormData(document.getElementById('loginFormElement'));
-
-                $.ajax({
-                    url: "{% url 'login' %}",
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.status === "success" || response.status === true) {
-                            showMessage(response.message);
-                            $('#loginModal').modal('hide');
-                            // Reload the page to reflect the logged-in state
-                            window.location.reload();
-                        } else {
-                            showMessage(response.message || response.error, 'error');
-                        }
-                    },
-                    error: function() {
-                        showMessage("An error occurred. Please try again.", 'error');
-                    }
-                });
-            }
         </script>
     </body>
 </html>
