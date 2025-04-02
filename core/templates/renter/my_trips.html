@@ -28,7 +28,8 @@
                 pickupLocation: '{{ bookings.0.pickup_location|escapejs }}',
                 returnLocation: '{{ bookings.0.return_location|escapejs }}',
                 totalCost: '{{ bookings.0.total_cost|escapejs }}',
-                listerWhatsApp: '{{ bookings.0.car.lister.whatsapp_number|escapejs }}'
+                listerWhatsApp: '{{ bookings.0.car.lister.whatsapp_number|escapejs }}',
+                carImageUrl: '{{ car_image_url|default:""|escapejs }}'  // Add the image URL
             };
         
             window.addEventListener('load', function() {
@@ -50,7 +51,7 @@
                 var formattedEndTime = endDate.toLocaleString('en-US', timeOptions);
                 var endDay = endDate.toLocaleString('en-US', dayOptions);
         
-                // Construct the message with line breaks and day of the week
+                // Construct the message with line breaks, day of the week, and image URL
                 var message = `Hello, I am a customer from Charge Car Rentals.\n\n` +
                               `I would like to confirm my booking for the ${recentBooking.carMake} ${recentBooking.carModel}.\n\n` +
                               `Booking ID: ${recentBooking.id}\n\n` +
@@ -61,6 +62,7 @@
                               `- Pickup: ${recentBooking.pickupLocation}\n` +
                               `- Return: ${recentBooking.returnLocation}\n\n` +
                               `Total Cost: Kshs ${recentBooking.totalCost}\n\n` +
+                              (recentBooking.carImageUrl ? `Car Image: ${recentBooking.carImageUrl}\n\n` : '') +
                               `Can we discuss the details?`;
         
                 // Optional: Display the message in the modal (if you have an element with id 'bookingDetails')

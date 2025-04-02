@@ -10,7 +10,7 @@ def create_availability(sender, instance, created, **kwargs):
             start_date=instance.start_date,
             end_date=instance.end_date
         )
-
+ 
 @receiver(post_delete, sender=Booking)
 def remove_availability(sender, instance, **kwargs):
     CarAvailability.objects.filter(

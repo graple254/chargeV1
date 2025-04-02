@@ -4,9 +4,29 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-        <meta name="description" content="" />
-        <meta name="author" content="" />
-        <title>Charge | {% block title %}{% endblock %}</title>
+
+        <!-- SEO Meta Tags -->
+        <meta name="description" content="Charge Car Rentals - Rent a car in Nairobi starting at 2500 Kshs! Find affordable, self-drive, and luxury car hire options from Kenya's largest car rental platform, hosting over 30 rental companies." />
+        <meta name="author" content="Charge Car Rentals" />
+        <meta name="keywords" content="car rental Nairobi, rent a car Kenya, cheap car rentals Nairobi, self-drive car hire, luxury car rental Nairobi, airport car rental Nairobi, best car rental deals Nairobi" />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="Charge - Rent a Car in Nairobi, Kenya | Affordable & Luxury Rentals" />
+        <meta property="og:description" content="Book your car rental in Nairobi today! Drive hassle-free with affordable rates starting from 2500 Kshs. Explore Nairobi with the best car hire options." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+        <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'files/renter/assets/ogImage.jpg' %}" />
+        <!-- Twitter Card -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta property="twitter:title" content="Charge Car Rentals | Rent a Car in Nairobi, Kenya - Affordable & Luxury Options" />
+        <meta property="twitter:description" content="Charge is Kenya's #1 car rental platform, hosting 30+ companies in Nairobi. Rent cars from just 2500 Ksh/day. Book your ride now!" />
+        <meta property="og:type" content="webapp" />
+        <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'files/renter/assets/ogImage.jpg' %}" />
+        <meta name="twitter:site" content="@charge_kenya" /> <!-- Replace with your actual Twitter handle -->
+        <meta name="twitter:creator" content="@charge_kenya" /> <!-- If you have a personal or business Twitter handle -->
+
+
+
+        <title>Charge - Rent a Car in Nairobi, Kenya | {% block title %}{% endblock %}</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="{% static 'files/renter/assets/favicon.ico' %}" />
         <!-- Custom Google font-->
@@ -18,6 +38,7 @@
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="{% static 'files/renter/css/styles.css' %}" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+        <link rel="canonical" href="{{ request.build_absolute_uri }}" />
         <style>
             body {
                 background-color: #f8f9fa;
@@ -60,6 +81,8 @@
                             {% else %}
                                 <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
                             {% endif %}
+                            <li class="nav-item"><a class="nav-link" href="#">|</a></li>
+                            <li class="nav-item"><a class="nav-link" hidden href="{% url 'about' %}">About Us</a></li>
                             <li class="nav-item"><a class="nav-link" id="support-link" href="#">Customer Support</a></li>
                         </ul>
                     </div>
@@ -71,14 +94,14 @@
                 <div class="row justify-content-center">
                     <div class="col-md-8">
                         {% for message in messages %}
-                            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} mb-3" role="alert">
+                            <div class="alert text-dark {% if message.tags %}alert-{{ message.tags }}{% endif %} mb-3" role="alert">
                                 {{ message }}
                             </div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
-        {% endif %}
+            {% endif %}
 
             <!-- Content-->
             {% block content %}{% endblock %}
@@ -87,30 +110,28 @@
         <!-- Bottom Navigation for Small Screens -->
         <nav class="navbar navbar-light bg-white fixed-bottom d-lg-none border-top">
             <div class="container d-flex justify-content-around py-2">
-            <!-- Book Car -->
-            <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
-                <i class="bi bi-truck fs-4"></i>
-                <div class="small">Book Car</div>
-            </a>
-          
-            <!-- My Trips / Login -->
-            {% if user.is_authenticated %}
-                <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
-                <i class="bi bi-bookmarks fs-4"></i>
-                <div class="small">My Bookings</div>
+                <!-- Book Car -->
+                <a href="{% url 'start' %}" class="text-decoration-none text-dark text-center">
+                    <i class="bi bi-truck fs-4"></i>
+                    <div class="small">Book Car</div>
                 </a>
-            {% else %}
-                <a href="{% url 'login' %}" class="text-decoration-none text-dark text-center">
-                <i class="bi bi-box-arrow-in-right fs-4"></i>
-                <div class="small">Login</div>
+                <!-- My Trips / Login -->
+                {% if user.is_authenticated %}
+                    <a href="{% url 'booking_history' %}" class="text-decoration-none text-dark text-center">
+                        <i class="bi bi-bookmarks fs-4"></i>
+                        <div class="small">My Bookings</div>
+                    </a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="text-decoration-none text-dark text-center">
+                        <i class="bi bi-box-arrow-in-right fs-4"></i>
+                        <div class="small">Login</div>
+                    </a>
+                {% endif %}
+                <!-- More (Triggers Offcanvas) -->
+                <a href="#" class="text-decoration-none text-dark text-center" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMore">
+                    <i class="bi bi-list fs-4"></i>
+                    <div class="small">More</div>
                 </a>
-            {% endif %}
-          
-            <!-- More (Triggers Offcanvas) -->
-            <a href="#" class="text-decoration-none text-dark text-center" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMore">
-                <i class="bi bi-list fs-4"></i>
-                <div class="small">More</div>
-            </a>
             </div>
         </nav>
 
@@ -127,11 +148,6 @@
                     <li class="list-group-item d-flex align-items-center py-3">
                         <i class="bi bi-person-circle me-3 fs-5 text-dark"></i>
                         <a href="{% url 'renter_profile' %}" class="text-decoration-none flex-grow-1 text-dark">Personal Details</a>
-                        <i class="bi bi-chevron-right text-muted"></i>
-                    </li>
-                    <li class="list-group-item d-flex align-items-center py-3">
-                        <i class="bi bi-info-circle me-3 fs-5 text-dark"></i>
-                        <a href="#" class="text-decoration-none flex-grow-1 text-dark">About Charge</a>
                         <i class="bi bi-chevron-right text-muted"></i>
                     </li>
                     <li class="list-group-item d-flex align-items-center py-3">
@@ -152,6 +168,38 @@
                 </ul>
             </div>
         </div>
+
+        <!-- Hidden SEO Content -->
+        <style>
+            .hidden-seo-text { display: none; }
+        </style>
+        {% block seo_content %}
+        <div class="hidden-seo-text">
+            <h2>Car Rentals in Nairobi - Charge Car Rentals</h2>
+            <p>Looking for the best car rental services in Nairobi? Charge Car Rentals offers affordable self-drive and chauffeur-driven cars starting at just 2500 Kshs. We are Kenya's largest car rental platform, hosting over 30 trusted car rental companies.</p>
+            
+            <h3>Why Choose Charge Car Rentals?</h3>
+            <ul>
+                <li>🚗 <strong>Affordable Car Rentals</strong> - Starting at 2500 Kshs</li>
+                <li>🏆 <strong>Largest Car Rental Marketplace</strong> in Kenya</li>
+                <li>🔑 <strong>Self-Drive & Chauffeur Services</strong></li>
+                <li>📍 <strong>Convenient Pickup & Drop-off Locations</strong> including Jomo Kenyatta International Airport (JKIA) and Nairobi CBD</li>
+            </ul>
+            
+            <h3>Best Car Hire Options in Nairobi</h3>
+            <p>Whether you need a car for a road trip, business travel, or daily commute, we have a wide range of vehicles including sedans, SUVs, vans, and luxury cars. Experience hassle-free booking and transparent pricing with no hidden fees.</p>
+            
+            <h3>How to Rent a Car in Nairobi with Charge</h3>
+            <ol>
+                <li>Search for available cars on our platform.</li>
+                <li>Compare prices and select the best rental option.</li>
+                <li>Book online and receive confirmation via WhatsApp or email.</li>
+                <li>Pick up your car at your chosen location.</li>
+            </ol>
+            
+            <p>Rent a car in Nairobi today and explore Kenya in comfort!</p>
+        </div>
+        {% endblock %}
 
         <!-- Bootstrap core JS and jQuery -->
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

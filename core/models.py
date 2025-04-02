@@ -180,7 +180,7 @@ class CarAvailability(models.Model):
     end_date = models.DateField()
 
     def __str__(self):
-        return f"Unavailable: {self.car.make} {self.car.model} ({self.start_date} - {self.end_date})"
+        return f"Unavailable: {self.car.make} {self.car.model} ({self.start_date} - {self.end_date})" 
 
 
 #Booking - Represents a booking made by a renter for a car

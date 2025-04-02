@@ -499,11 +499,13 @@ def start(request):
     return render(request, "renter/index.html")
 
 
+
 def car_list(request):
     """ 
     Lists available cars based on:
     - Pickup & return date/time
-    - Availability (ensuring no conflicts with existing bookings)
+    - Availability (ensuring no conflicts with existing CarAvailability records)
+    - Minimum rental days (total_booking_days must be >= least_days)
     - Dynamic filters (vehicle type, gear shift, passengers)
     """
     pickup_location = request.GET.get("pickup_location")
@@ -522,18 +524,46 @@ def car_list(request):
     try:
         pickup_datetime = datetime.strptime(f"{pickup_date} {pickup_time}", "%Y-%m-%d %H:%M")
         return_datetime = datetime.strptime(f"{return_date} {return_time}", "%Y-%m-%d %H:%M")
+        pickup_datetime = timezone.make_aware(pickup_datetime)
+        return_datetime = timezone.make_aware(return_datetime)
     except ValueError:
         messages.error(request, "Invalid date format. Please try again.")
         return redirect("start")
 
-    # Get cars that are already booked within the requested time range
-    unavailable_car_ids = Booking.objects.filter(
-        Q(start_date__lt=return_datetime, end_date__gt=pickup_datetime)
+    # Calculate total booking days
+    total_booking_days = (return_datetime - pickup_datetime).days
+    if total_booking_days < 1:
+        messages.error(request, "Booking duration must be at least 1 day.")
+        return redirect("start")
+
+    # Extract dates for comparison with CarAvailability
+    pickup_date_only = pickup_datetime.date()
+    return_date_only = return_datetime.date()
+
+    # Get cars that are unavailable within the requested date range
+    unavailable_car_ids = CarAvailability.objects.filter(
+        Q(start_date__lte=return_date_only) & Q(end_date__gte=pickup_date_only)
     ).values_list("car_id", flat=True)
 
     # Filter available cars
-    available_cars = Car.objects.exclude(id__in=unavailable_car_ids).order_by('price_per_day')
-    
+    available_cars = Car.objects.exclude(id__in=unavailable_car_ids)
+
+    # Filter cars where total_booking_days is greater than or equal to least_days
+    available_cars = available_cars.filter(least_days__lte=total_booking_days).order_by('price_per_day')
+
+    # Apply dynamic filters (vehicle type, gear shift, passengers)
+    vehicle_type = request.GET.get('vehicle_type')
+    if vehicle_type:
+        available_cars = available_cars.filter(vehicle_type=vehicle_type)
+
+    passengers = request.GET.get('passengers')
+    if passengers:
+        available_cars = available_cars.filter(passengers=passengers)
+
+    transmission = request.GET.get('transmission')
+    if transmission:
+        available_cars = available_cars.filter(transmission=transmission)
+
     # Add pagination (9 cars per page)
     paginator = Paginator(available_cars, 9)  # 9 cars per page
     page_number = request.GET.get('page')  # Get the page number from the URL query
@@ -557,6 +587,7 @@ def car_list(request):
         "transmission_choices": transmission_choices,
         "page_obj": page_obj,  # Pass page_obj for pagination controls
     })
+
 
 
 @login_required
@@ -703,7 +734,6 @@ def car_booking(request, car_id):
 
 
 
-# Booking history view
 @login_required
 @role_required("Renter")
 def my_trips(request):
@@ -714,7 +744,21 @@ def my_trips(request):
     # Retrieve and remove `new_booking` from session
     new_booking = request.session.pop("new_booking", False)
 
-    return render(request, "renter/my_trips.html", {"bookings": bookings, "new_booking": new_booking})
+    # Get the car image URL for the most recent booking
+    car_image_url = None
+    if bookings.exists():
+        recent_booking = bookings.first()
+        # Get the first image for the car (assuming CarImage has a related_name='images')
+        car_image = recent_booking.car.images.first()
+        if car_image:
+            # Build the absolute URL for the image
+            car_image_url = request.build_absolute_uri(car_image.image.url)
+
+    return render(request, "renter/my_trips.html", {
+        "bookings": bookings,
+        "new_booking": new_booking,
+        "car_image_url": car_image_url,  # Pass the image URL to the template
+    })
 
 
 
@@ -822,3 +866,14 @@ def update_renter_profile(request):
         })
 
     return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
+
+
+
+# About Charge Car Rentals ###########################################################################
+
+def about(request):
+    featured_cars = Car.objects.all()
+    context = {
+        'featured_cars': featured_cars,
+    }
+    return render(request, "about/index_about.html", context)

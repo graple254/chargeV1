@@ -43,4 +43,7 @@ urlpatterns = [
     path("cars/<int:car_id>/book/", car_booking, name="car_booking"),
     path("bookings/", my_trips, name="booking_history"),
     path("renter_profile/", renter_profile, name="renter_profile"),
+
+    # About and About US
+    path("about/", about, name="about"),
 ]
