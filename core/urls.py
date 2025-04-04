@@ -46,4 +46,7 @@ urlpatterns = [
 
     # About and About US
     path("about/", about, name="about"),
+
+    
+    path("robots.txt", robots_txt),
 ]

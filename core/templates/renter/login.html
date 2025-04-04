@@ -146,6 +146,7 @@
                 </div>
             </div>
 
+
             <!-- Signup Form -->
             <div id="signupForm" style="display: none;">
                 <h5 class="mb-3">Sign Up</h5>
@@ -163,7 +164,9 @@
                     <div class="mb-3">
                         <label for="signupRole" class="form-label">Role</label>
                         <select class="form-select" id="signupRole" name="role" required>
-                            <option value="RENTER">Renter</option>
+                            {% for value, label in role_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
@@ -183,29 +186,61 @@
 
             <!-- Profile Creation Form -->
             <div id="profileCreationForm" style="display: none;">
-                <h5 class="mb-3" id="profileCreationTitle">Create Your Renter Profile</h5>
+                <h5 class="mb-3" id="profileCreationTitle">Create Your Profile</h5>
                 <form id="profileCreationFormElement" onsubmit="handleProfileCreation(event)" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" id="profileRole" name="role" value="renter">
-                    <div class="mb-3">
-                        <label for="profileWhatsappNumber" class="form-label">WhatsApp Number (e.g., +2547XXXXXXXX)</label>
-                        <input type="tel" class="form-control" id="profileWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX" required>
+
+                    <!-- Renter-specific fields (shown when role is 'renter') -->
+                    <div id="renterFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="profileWhatsappNumber" class="form-label">WhatsApp Number (e.g., +2547XXXXXXXX)</label>
+                            <input type="tel" class="form-control" id="profileWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX">
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileAge" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="profileAge" name="age" min="18" max="120">
+                        </div>
+                        <div class="mb-3">
+                            <label for="idImage" class="form-label">ID Image</label>
+                            <input type="file" class="form-control" id="idImage" name="id_image" accept="image/*">
+                        </div>
+                        <div class="mb-3">
+                            <label for="drivingLicenseImage" class="form-label">Driving License Image</label>
+                            <input type="file" class="form-control" id="drivingLicenseImage" name="driving_license_image" accept="image/*">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="profileAge" class="form-label">Age</label>
-                        <input type="number" class="form-control" id="profileAge" name="age" min="18" max="120" required>
+
+                    <!-- Lister-specific fields (shown when role is 'lister') -->
+                    <div id="listerFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="companyName" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="companyName" name="company_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="contactEmail" class="form-label">Contact Email</label>
+                            <input type="email" class="form-control" id="contactEmail" name="contact_email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="contactPhone" class="form-label">Contact Phone (e.g., +2547XXXXXXXX)</label>
+                            <input type="tel" class="form-control" id="contactPhone" name="contact_phone" placeholder="+2547XXXXXXXX">
+                        </div>
+                        <div class="mb-3">
+                            <label for="listerWhatsappNumber" class="form-label">WhatsApp Number (e.g., +2547XXXXXXXX)</label>
+                            <input type="tel" class="form-control" id="listerWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX">
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="idImage" class="form-label">ID Image</label>
-                        <input type="file" class="form-control" id="idImage" name="id_image" accept="image/*" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="drivingLicenseImage" class="form-label">Driving License Image</label>
-                        <input type="file" class="form-control" id="drivingLicenseImage" name="driving_license_image" accept="image/*" required>
-                    </div>
+
                     <button type="submit" class="btn btn-primary w-100 rounded-pill">Create Profile</button>
                 </form>
             </div>
+
+
+
         </div>
     </div>
 
@@ -281,6 +316,20 @@
             });
         });
 
+        function getCSRFToken() {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith('csrftoken=')) {
+                        cookieValue = cookie.substring('csrftoken='.length, cookie.length);
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
         // State management
         function showAuthInitial() {
             hideAllSections();
@@ -307,8 +356,26 @@
             $('#signupForm').show();
         }
 
+                // Update showProfileCreationForm to toggle fields based on role
         function showProfileCreationForm() {
             hideAllSections();
+            const role = $('#profileRole').val();
+
+            // Renter fields
+            const renterFields = $('#renterFields input');
+            const listerFields = $('#listerFields input');
+
+            if (role === 'renter') {
+                $('#renterFields').show();
+                $('#listerFields').hide();
+                renterFields.prop('required', true);  // Make Renter fields required
+                listerFields.prop('required', false); // Remove required from Lister fields
+            } else if (role === 'lister') {
+                $('#renterFields').hide();
+                $('#listerFields').show();
+                renterFields.prop('required', false); // Remove required from Renter fields
+                listerFields.prop('required', true);  // Make Lister fields required
+            }
             $('#profileCreationForm').show();
         }
 
@@ -463,14 +530,14 @@
                 }
             });
         }
-
         function handleSignup(event) {
             event.preventDefault();
             showRedirectionModal("Signing up...");
             const formData = new FormData(document.getElementById('signupFormElement'));
+            const selectedRole = formData.get('role'); // Get the selected role from the form
 
             $.ajax({
-                url: "{% url 'signup' %}",
+                url: "{% url 'signup' %}",  // Ensure this URL resolves correctly in your template
                 type: "POST",
                 data: formData,
                 processData: false,
@@ -480,8 +547,14 @@
                     console.log("handleSignup response:", response);
                     if (response.status === true) {
                         showMessage(response.message);
-                        $('#profileRole').val('renter');
-                        $('#profileCreationTitle').text('Create Your Renter Profile');
+                        // Set profile creation form based on selected role
+                        if (selectedRole === 'RENTER') {
+                            $('#profileRole').val('renter');
+                            $('#profileCreationTitle').text('Create Your Renter Profile');
+                        } else if (selectedRole === 'LISTER') {
+                            $('#profileRole').val('lister');
+                            $('#profileCreationTitle').text('Create Your Lister Profile');
+                        }
                         showProfileCreationForm();
                     } else {
                         showMessage(response.error, 'error');
@@ -495,38 +568,45 @@
             });
         }
 
-        function handleProfileCreation(event) {
-            event.preventDefault();
-            showRedirectionModal("Creating profile...");
-            const form = document.getElementById('profileCreationFormElement');
-            const formData = new FormData(form);
-            const url = "{% url 'create_profile' %}";
 
-            console.log("Form Data:", Array.from(formData.entries()));
-            console.log("URL:", url);
+// Modified handleProfileCreation to use role-specific endpoints and ensure CSRF token
+function handleProfileCreation(event) {
+    event.preventDefault();
+    showRedirectionModal("Creating profile...");
+    const form = document.getElementById('profileCreationFormElement');
+    const formData = new FormData(form);
+    const role = formData.get('role');
+    const url = role === 'renter' ? "{% url 'create_profile' %}" : "{% url 'update_lister_profile' %}";
 
-            $.ajax({
-                url: url,
-                type: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    hideRedirectionModal();
-                    console.log("Success response:", response);
-                    if (response.success === true) {
-                        showProfileSuccessModal(); // Show the success modal instead of immediate redirect
-                    } else {
-                        showMessage(response.message, 'error');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    hideRedirectionModal();
-                    console.log("Error:", xhr, status, error);
-                    showMessage("An error occurred: " + (xhr.responseJSON ? xhr.responseJSON.message : error), 'error');
-                }
-            });
+    console.log("Form Data:", Array.from(formData.entries()));
+    console.log("URL:", url);
+
+    $.ajax({
+    url: url,
+    type: "POST",
+    data: formData,
+    processData: false,
+    contentType: false,
+    headers: {
+        "X-CSRFToken": getCSRFToken()  // Fetch token from cookies
+    },
+    success: function(response) {
+        hideRedirectionModal();
+        console.log("Success response:", response);
+        if ((role === 'renter' && response.success === true) || (role === 'lister' && response.message)) {
+            showProfileSuccessModal();
+        } else {
+            showMessage(response.message || response.error, 'error');
         }
+    },
+    error: function(xhr, status, error) {
+        hideRedirectionModal();
+        console.log("Error:", xhr, status, error);
+        showMessage("An error occurred: " + (xhr.responseJSON ? xhr.responseJSON.message || xhr.responseJSON.error : error), 'error');
+    }
+});
+
+}
     </script>
 </body>
 </html>

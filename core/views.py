@@ -19,6 +19,10 @@ from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 import re
 import decimal
+from django.utils.timezone import localtime, now
+from datetime import timedelta
+
+
 
 
 
@@ -39,9 +43,12 @@ def authenticate_user(request):
         else:
             return JsonResponse({"status": False, "error": "Invalid username or password"})
 
-    # Render the login template for GET requests
+# Render the login template for GET requests with ROLE_CHOICES
     next_url = request.GET.get("next", "/")
-    return render(request, "renter/login.html", {"next": next_url})
+    return render(request, "renter/login.html", {
+        "next": next_url,
+        "role_choices": User.ROLE_CHOICES  # Pass the role choices to the template
+    })
 
 def send_verification_code(request):
     """Sends an email verification code to the user."""
@@ -191,34 +198,76 @@ def logout_user(request):
 
 
 # Lister views and Functionalities HERE 👇 ##############################################################################
-
-
 @login_required
 @role_required("lister")
 def lister_dashboard(request):
     """ Dashboard view for the car lister """
     user = request.user
-    lister_profile = getattr(user, "lister_profile", None)  # Get profile or None
+    lister_profile = getattr(user, "lister_profile", None)
+
+    if not lister_profile:
+        return render(request, "lister/dashboard.html", {"todays_bookings": []})
+
+    # Calculate approximate revenue
+    approximate_revenue = 0
+    completed_bookings = Booking.objects.filter(car__lister=lister_profile, status="COMPLETED")
+    for booking in completed_bookings:
+        if booking.start_date and booking.end_date:
+            rental_days = (booking.end_date - booking.start_date).days
+            approximate_revenue += rental_days * booking.car.price_per_day
+
+    # Get today's date in the local timezone
+    today = localtime(now()).date()
+
+    # Fetch bookings created today using created_at
+    todays_bookings = Booking.objects.filter(
+        car__lister=lister_profile,
+        created_at__date=today  # Filter by creation date
+    ).order_by("-created_at")
+
+    # Debugging: Log the count and data
+    print(f"Bookings Created Today Count: {todays_bookings.count()}")
+    for booking in todays_bookings:
+        print(f"Booking: {booking.id}, Car: {booking.car}, Created At: {booking.created_at}")
 
     context = {
-        "profile_exists": bool(lister_profile),  # True if profile exists, False otherwise
-        "total_cars": Car.objects.filter(lister=lister_profile).count() if lister_profile else 0,
-        "total_bookings": Booking.objects.filter(car__lister=lister_profile).count() if lister_profile else 0,
-        "pending_bookings": Booking.objects.filter(car__lister=lister_profile, status="PENDING").count() if lister_profile else 0,
+        "profile_exists": True,
+        "total_cars": Car.objects.filter(lister=lister_profile).count(),
+        "total_bookings": Booking.objects.filter(car__lister=lister_profile).count(),
+        "approximate_revenue": approximate_revenue,
+        "available_cars": Car.objects.filter(lister=lister_profile, available=True).count(),
+        "bookings": completed_bookings,
+        "todays_bookings": todays_bookings,
+        "todays_bookings_count": todays_bookings.count(),  # For badge
     }
 
     return render(request, "lister/dashboard.html", context)
-
 
 @login_required
 @role_required("lister")
 def manage_fleet(request):
     """ View for managing the lister’s fleet of cars """
     lister = request.user.lister_profile
-    cars = Car.objects.filter(lister=lister)
-    
+    query = request.GET.get('q', '')
+
+    # Filter cars based on search query and order by creation date
+    cars = Car.objects.filter(lister=lister).filter(
+        Q(make__icontains=query) | Q(model__icontains=query) | Q(vehicle_type__icontains=query)
+    ).prefetch_related('images').order_by('-created_at')
+
+    # Attach the first image for each car
+    for car in cars:
+        car.first_image = car.images.first().image.url if car.images.exists() else None
+
+    # Paginate results (10 per page)
+    paginator = Paginator(cars, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'cars': cars,
+        'page_obj': page_obj,
+        'q': query,
+        'Car' :Car,
     }
     return render(request, 'lister/manage_fleet.html', context)
 
@@ -270,6 +319,7 @@ def lister_reviews_complaints(request):
 
 @login_required
 @role_required("lister")
+@csrf_exempt
 def create_or_update_lister_profile(request):
     """ Allows a lister to create or edit their profile """
     if request.method == "POST":
@@ -306,27 +356,30 @@ def create_or_update_lister_profile(request):
 
 
 
-# Create a car
 @login_required
 @role_required("lister")
 @require_POST
 def create_car(request):
     """Handles car creation with images."""
     user = request.user
+
     try:
         lister = user.lister_profile
     except ListerProfile.DoesNotExist:
         return JsonResponse({"error": "Profile not found. Please create one."}, status=400)
 
-    data = json.loads(request.POST.get("data", "{}"))
-    images = request.FILES.getlist("images")
+    # Extract form data (NO NEED for json.loads)
+    data = request.POST
 
-    # Extract car details
+    images = request.FILES.getlist("images")  # Extract uploaded images
+
+    # Required fields validation
     required_fields = ["make", "model", "price_per_day"]
     for field in required_fields:
         if not data.get(field):
             return JsonResponse({"error": f"{field} is required."}, status=400)
 
+    # Create car
     car = Car.objects.create(
         lister=lister,
         make=data["make"],
@@ -340,17 +393,17 @@ def create_car(request):
         price_per_day=data["price_per_day"],
         least_days=data.get("least_days", 1),
         description=data.get("description", ""),
-        available=data.get("available", True),
+        available=data.get("available", "false").lower() == "true",  # Convert to boolean
     )
 
     # Save images
-    for image in images:
-        CarImage.objects.create(car=car, image=image)
+    if images:
+        for image in images:
+            CarImage.objects.create(car=car, image=image)
 
     return JsonResponse({"message": "Car listing created successfully!"}, status=201)
 
 
-# Edit a car
 @login_required
 @role_required("lister")
 @require_POST
@@ -367,23 +420,27 @@ def edit_car(request, car_id):
     except Car.DoesNotExist:
         return JsonResponse({"error": "Car not found."}, status=404)
 
-    data = json.loads(request.POST.get("data", "{}"))
-    images = request.FILES.getlist("images")
+    # Use request.POST directly
+    data = request.POST
 
     # Update fields only if provided
     for field in [
         "make", "model", "vehicle_type", "seats", "suitcases", "doors",
         "passengers", "transmission", "price_per_day", "least_days",
-        "description", "available"
+        "description"
     ]:
         if field in data:
             setattr(car, field, data[field])
 
+    # Handle boolean field (checkbox issue)
+    car.available = data.get("available") == "true"
+
     car.save()
 
     # Replace old images with new ones if provided
+    images = request.FILES.getlist("images")
     if images:
-        car.images.all().delete()
+        car.images.all().delete()  # Remove old images
         for image in images:
             CarImage.objects.create(car=car, image=image)
 
@@ -877,3 +934,10 @@ def about(request):
         'featured_cars': featured_cars,
     }
     return render(request, "about/index_about.html", context)
+
+
+from django.http import HttpResponse
+
+def robots_txt(request):
+    content = "User-agent: *\nAllow: /"
+    return HttpResponse(content, content_type="text/plain")    

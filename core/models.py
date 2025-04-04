@@ -143,6 +143,7 @@ class Car(models.Model):
     least_days = models.PositiveIntegerField(default=1)
     description = models.TextField(blank=True, null=True)
     available = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
 
     def __str__(self):
         return f"{self.make} {self.model} - {self.lister.company_name}"

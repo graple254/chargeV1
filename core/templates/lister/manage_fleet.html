@@ -1,0 +1,517 @@
+{% extends 'lister/baseBus.html' %}
+{% load static %}
+
+{% block title %}Manage Fleet{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 mb-5 pb-5">
+    <h4>Manage Your Fleet</h4>
+
+    <!-- Search Bar -->
+    <form method="get" class="mb-3">
+        <div class="d-flex gap-2">
+            <input type="text" name="q" class="form-control" placeholder="Search by make, model, or category" value="{{ q }}">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a href="{% url 'manage_fleet' %}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+
+    <!-- Cars Table -->
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Category</th>
+                    <th>Availability</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for car in page_obj %}
+                <tr>
+                    <td>
+                        {% if car.images.first %}
+                        <img src="{{ car.images.first.image.url }}" alt="{{ car.make }} {{ car.model }}" width="100" height="70" class="rounded">
+                        {% else %}
+                        <img src="{% static 'images/default-car.jpg' %}" alt="No Image" width="100" height="70" class="rounded">
+                        {% endif %}
+                    </td>
+                    <td>{{ car.make }}</td>
+                    <td>{{ car.model }}</td>
+                    <td>{{ car.vehicle_type }}</td>
+                    <td>
+                        {% if car.available %}
+                        <span class="badge bg-secondary">Available</span>
+                        {% else %}
+                        <span class="badge bg-danger">Not Available</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#carModal{{ car.id }}">
+                            Details
+                        </button>
+                        <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteCarModal{{ car.id }}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No cars found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Fleet pagination">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">« Prev</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}&q={{ q }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">Next »</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- ===================== Car-Specific Modals ===================== -->
+{% for car in page_obj %}
+<!-- Car Details, Schedule, and Edit Modal -->
+<div class="modal fade" id="carModal{{ car.id }}" tabindex="-1" aria-labelledby="carModalLabel{{ car.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="carModalLabel{{ car.id }}">{{ car.make }} {{ car.model }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs" id="carTab{{ car.id }}" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab{{ car.id }}" data-bs-toggle="tab" data-bs-target="#details{{ car.id }}" type="button" role="tab" aria-controls="details{{ car.id }}" aria-selected="true">Details</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="schedule-tab{{ car.id }}" data-bs-toggle="tab" data-bs-target="#schedule{{ car.id }}" type="button" role="tab" aria-controls="schedule{{ car.id }}" aria-selected="false">Schedule</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="edit-tab{{ car.id }}" data-bs-toggle="tab" data-bs-target="#edit{{ car.id }}" type="button" role="tab" aria-controls="edit{{ car.id }}" aria-selected="false">Edit</button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content mt-3" id="carTabContent{{ car.id }}">
+                    <!-- Details Tab -->
+                    <div class="tab-pane fade show active" id="details{{ car.id }}" role="tabpanel" aria-labelledby="details-tab{{ car.id }}">
+                        <div class="card shadow-sm p-3">
+                            <h5 class="card-title text-primary">
+                                <i class="bi bi-car-front-fill"></i> {{ car.make }} {{ car.model }}
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-grid"></i> <strong>Category:</strong> {{ car.vehicle_type }}</p>
+                                    <p><i class="bi bi-people"></i> <strong>Seats:</strong> {{ car.seats|default:"N/A" }}</p>
+                                    <p><i class="bi bi-suitcase"></i> <strong>Suitcases:</strong> {{ car.suitcases|default:"N/A" }}</p>
+                                    <p><i class="bi bi-door-open"></i> <strong>Doors:</strong> {{ car.doors|default:"N/A" }}</p>
+                                    <p><i class="bi bi-people-fill"></i> <strong>Passengers:</strong> {{ car.passengers|default:"N/A" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-gear-fill"></i> <strong>Transmission:</strong> {{ car.transmission|default:"N/A" }}</p>
+                                    <p><i class="bi bi-cash-stack"></i> <strong>Price/Day:</strong> ${{ car.price_per_day }}</p>
+                                    <p><i class="bi bi-clock-history"></i> <strong>Min Days:</strong> {{ car.least_days }}</p>
+                                    <p><i class="bi bi-check-circle"></i> <strong>Available:</strong> {{ car.available|yesno:"Yes,No" }}</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <p><i class="bi bi-info-circle"></i> <strong>Description:</strong> {{ car.description|default:"No description" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Tab -->
+                    <div class="tab-pane fade" id="schedule{{ car.id }}" role="tabpanel" aria-labelledby="schedule-tab{{ car.id }}">
+                        <p>Schedule information for {{ car.make }} {{ car.model }} would go here.</p>
+                    </div>
+
+                    <!-- Edit Tab -->
+                    <div class="tab-pane fade" id="edit{{ car.id }}" role="tabpanel" aria-labelledby="edit-tab{{ car.id }}">
+                        <div class="card border-0 shadow-sm p-4">
+                            <h5 class="card-title mb-3"><i class="bi bi-pencil-square"></i> Edit Car Details</h5>
+                            <form id="editForm{{ car.id }}" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <!-- Basic Details -->
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="make{{ car.id }}" class="form-label"><i class="bi bi-car-front"></i> Make</label>
+                                        <input type="text" class="form-control" id="make{{ car.id }}" name="make" value="{{ car.make }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="model{{ car.id }}" class="form-label"><i class="bi bi-car-front-fill"></i> Model</label>
+                                        <input type="text" class="form-control" id="model{{ car.id }}" name="model" value="{{ car.model }}">
+                                    </div>
+                                </div>
+                                <!-- Category & Transmission -->
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label for="vehicle_type{{ car.id }}" class="form-label"><i class="bi bi-tags"></i> Category</label>
+                                        <select class="form-select" id="vehicle_type{{ car.id }}" name="vehicle_type">
+                                            <option value="">Select Type</option>
+                                            {% for value, label in car.VEHICLE_TYPE %}
+                                                <option value="{{ value }}" {% if car.vehicle_type == value %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="transmission{{ car.id }}" class="form-label"><i class="bi bi-gear"></i> Transmission</label>
+                                        <select class="form-select" id="transmission{{ car.id }}" name="transmission">
+                                            <option value="">Select Transmission</option>
+                                            {% for value, label in car.TRANSMISSION_CHOICES %}
+                                                <option value="{{ value }}" {% if car.transmission == value %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Specifications -->
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <label for="seats{{ car.id }}" class="form-label"><i class="bi bi-person"></i> Seats</label>
+                                        <input type="number" class="form-control" id="seats{{ car.id }}" name="seats" value="{{ car.seats|default:'' }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="suitcases{{ car.id }}" class="form-label"><i class="bi bi-suitcase"></i> Suitcases</label>
+                                        <input type="number" class="form-control" id="suitcases{{ car.id }}" name="suitcases" value="{{ car.suitcases|default:'' }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="doors{{ car.id }}" class="form-label"><i class="bi bi-door-open"></i> Doors</label>
+                                        <input type="number" class="form-control" id="doors{{ car.id }}" name="doors" value="{{ car.doors|default:'' }}">
+                                    </div>
+                                </div>
+                                <!-- Pricing -->
+                                <div class="row g-3 mt-2">
+                                    
+                                    <div class="col-md-6">
+                                        <label for="passengers" class="form-label">Passengers</label>
+                                        <select class="form-select" id="passengers" name="passengers" required>
+                                            <option value="">Select Passengers</option>
+                                            {% for value, label in Car.PASSENGERS_CHOICES %}
+                                                <option value="{{ value }}">{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="price_per_day{{ car.id }}" class="form-label"><i class="bi bi-cash"></i> Price/Day</label>
+                                        <input type="number" step="0.01" class="form-control" id="price_per_day{{ car.id }}" name="price_per_day" value="{{ car.price_per_day }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="least_days{{ car.id }}" class="form-label"><i class="bi bi-calendar"></i> Min Days</label>
+                                        <input type="number" class="form-control" id="least_days{{ car.id }}" name="least_days" value="{{ car.least_days }}">
+                                    </div>
+                                </div>
+                                <!-- Availability -->
+                                <div class="form-check form-switch mt-3">
+                                    <input class="form-check-input" type="checkbox" name="available" id="available{{ car.id }}" {% if car.available %}checked{% endif %}>
+                                    <label class="form-check-label" for="available{{ car.id }}"><i class="bi bi-check-circle"></i> Available</label>
+                                </div>
+                                <!-- Description -->
+                                <div class="mt-3">
+                                    <label for="description{{ car.id }}" class="form-label"><i class="bi bi-chat-left-text"></i> Description (Optional)</label>
+                                    <textarea class="form-control" id="description{{ car.id }}" name="description" rows="3">{{ car.description|default:'' }}</textarea>
+                                </div>
+                                <!-- Image Upload Section -->
+                                <div class="mt-3 text-center">
+                                    <label for="images{{ car.id }}" class="form-label"><i class="bi bi-image"></i> Upload New Car Image</label>
+                                    <div id="previewBox{{ car.id }}" class="d-flex justify-content-center align-items-center"
+                                        style="width: 100%; max-width: 250px; height: 150px; background: #e0e0e0; border-radius: 8px; overflow: hidden; margin: auto;">
+                                        <img id="previewImage{{ car.id }}" src="#" alt="Preview" style="max-width: 100%; max-height: 100%; display: none;">
+                                    </div>
+                                    <div class="mt-2">
+                                        <input type="file" class="d-none" id="images{{ car.id }}" name="images" onchange="previewImage(event, '{{ car.id }}')">
+                                        <button type="button" class="btn btn-primary btn-sm me-2" onclick="document.getElementById('images{{ car.id }}').click();">
+                                            Choose File
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" id="cancelUpload{{ car.id }}" onclick="removeImage('{{ car.id }}')" style="display: none;">
+                                            Cancel Upload
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Submit Button -->
+                                <div class="text-end mt-4">
+                                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal for this Car -->
+<div class="modal fade" id="deleteCarModal{{ car.id }}" tabindex="-1" aria-labelledby="deleteCarLabel{{ car.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCarLabel{{ car.id }}">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong>{{ car.make }} {{ car.model }}</strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="deleteCar({{ car.id }})">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- ===================== Floating Create Button & Modal ===================== -->
+
+<!-- Floating Create Button -->
+<button class="btn btn-primary position-fixed bottom-3 end-3 mb-5 me-3 shadow-lg rounded-pill p-3"
+    data-bs-toggle="modal" data-bs-target="#createCarModal" style="z-index: 1050;">
+    <i class="bi bi-plus-circle-fill"></i>
+</button>
+<!-- Create Car Modal -->
+<div class="modal fade" id="createCarModal" tabindex="-1" aria-labelledby="createCarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCarModalLabel">List a New Car</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Scrollable form container -->
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <form id="createCarForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="make" class="form-label">Make</label>
+                            <input type="text" class="form-control" id="make" name="make" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="model" class="form-label">Model</label>
+                            <input type="text" class="form-control" id="model" name="model" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="vehicle_type" class="form-label">Category</label>
+                            <select class="form-select" id="vehicle_type" name="vehicle_type" required>
+                                <option value="">Select Type</option>
+                                {% for value, label in Car.VEHICLE_TYPE %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="transmission" class="form-label">Transmission</label>
+                            <select class="form-select" id="transmission" name="transmission" required>
+                                <option value="">Select Transmission</option>
+                                <option value="AUTOMATIC">Automatic</option>
+                                <option value="MANUAL">Manual</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="seats" class="form-label">Seats</label>
+                            <input type="number" class="form-control" id="seats" name="seats" min="1">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="doors" class="form-label">Doors</label>
+                            <input type="number" class="form-control" id="doors" name="doors" min="1">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="suitcases" class="form-label">Suitcases</label>
+                            <input type="number" class="form-control" id="suitcases" name="suitcases" min="0">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="passengers" class="form-label">Passengers</label>
+                            <select class="form-select" id="passengers" name="passengers" required>
+                                <option value="">Select Passengers</option>
+                                {% for value, label in Car.PASSENGERS_CHOICES %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="price_per_day" class="form-label">Price per Day (KES)</label>
+                            <input type="number" class="form-control" id="price_per_day" name="price_per_day" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="least_days" class="form-label">Minimum Rental Days</label>
+                            <input type="number" class="form-control" id="least_days" name="least_days" min="1" value="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <!-- Image Upload Section -->
+                    <div class="mt-3 text-center">
+                        <label for="createCarImages" class="form-label"><i class="bi bi-image"></i> Upload Car Image</label>
+                        <div id="previewBoxCreate" class="d-flex justify-content-center align-items-center"
+                            style="width: 100%; max-width: 250px; height: 150px; background: #e0e0e0; border-radius: 8px; overflow: hidden; margin: auto;">
+                            <img id="previewImageCreate" src="#" alt="Preview" style="max-width: 100%; max-height: 100%; display: none;">
+                        </div>
+                        <div class="mt-2">
+                            <input type="file" class="d-none" id="createCarImages" name="images" onchange="previewImage(event, 'Create')">
+                            <button type="button" class="btn btn-primary btn-sm me-2" onclick="document.getElementById('createCarImages').click();">
+                                Choose File
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" id="cancelUploadCreate" onclick="removeImage('Create')" style="display: none;">
+                                Cancel Upload
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="available" id="available" value="true" checked>
+                        <label class="form-check-label" for="available">Available</label>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" class="btn btn-primary">Create Listing</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ===================== Script Section ===================== -->
+<script>
+// ----------------- Shared Image Preview Functions -----------------
+function previewImage(event, id) {
+    // For create form, id = "Create"; for edit forms, id = car.id
+    const input = event.target;
+    const previewImage = document.getElementById("previewImage" + id);
+    const cancelButton = document.getElementById("cancelUpload" + id);
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewImage.style.display = "block";
+            cancelButton.style.display = "inline-block";
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+function removeImage(id) {
+    // For create form, id = "Create"; for edit forms, id = car.id
+    if (id === 'Create') {
+        document.getElementById("createCarImages").value = "";
+    } else {
+        document.getElementById("images" + id).value = "";
+    }
+    document.getElementById("previewImage" + id).style.display = "none";
+    document.getElementById("cancelUpload" + id).style.display = "none";
+}
+
+// ----------------- Create Car Form Submission -----------------
+document.getElementById("createCarForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const submitButton = this.querySelector("button[type='submit']");
+    submitButton.disabled = true; // Prevent multiple submissions
+
+    const formData = new FormData(this);
+    fetch("{% url 'create_car' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            alert(data.message);
+            location.reload();
+        } else {
+            console.log(data.error || 'An error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+    });
+});
+
+// ----------------- Edit Car Form Submission -----------------
+document.addEventListener('DOMContentLoaded', function() {
+    const editForms = document.querySelectorAll('[id^="editForm"]');
+    editForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const carId = this.id.replace('editForm', '');
+            const availableCheckbox = document.getElementById(`available${carId}`);
+            formData.set("available", availableCheckbox.checked);
+            fetch(`/cars/${carId}/edit/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    console.log(data.error || 'An error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+});
+
+// ----------------- Delete Car Function -----------------
+function deleteCar(carId) {
+    fetch(`/cars/${carId}/delete/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json",
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            alert("Car deleted successfully!");
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    })
+    .catch(error => console.error("Error:", error));
+}
+</script>
+{% endblock %}
