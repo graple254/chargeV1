@@ -28,6 +28,8 @@ urlpatterns = [
     path("cars/create/", create_car, name="create_car"),
     path("cars/<int:car_id>/edit/", edit_car, name="edit_car"),
     path("cars/<int:car_id>/delete/", delete_car, name="delete_car"),
+    path('car/<int:car_id>/availability/', car_availability_json, name='car_availability_json'),
+
 
     # Car Availability
     path("cars/<int:car_id>/availability/", set_car_availability, name="set_car_availability"),

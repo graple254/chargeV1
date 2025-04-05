@@ -274,6 +274,26 @@ def manage_fleet(request):
 
 @login_required
 @role_required("lister")
+def car_availability_json(request, car_id):
+    """ JSON endpoint for FullCalendar to fetch availability data """
+    car = get_object_or_404(Car, id=car_id, lister=request.user.lister_profile)
+    availabilities = car.availability.all()
+
+    events = []
+    for availability in availabilities:
+        events.append({
+            'title': 'Booked',
+            'start': availability.start_date.isoformat(),
+            'end': (availability.end_date + timedelta(days=1)).isoformat(),  # Exclusive end date for FullCalendar
+        })
+
+    print(f"Car ID: {car_id}, Availability Events Count: {len(events)}")    
+
+    return JsonResponse(events, safe=False)
+
+
+@login_required
+@role_required("lister")
 def manage_bookings(request):
     """ View for managing bookings of listed cars """
     lister = request.user.lister_profile

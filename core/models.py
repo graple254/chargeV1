@@ -177,8 +177,8 @@ class CarImage(models.Model):
 # Car Availability - Defines unavailable dates for a car
 class CarAvailability(models.Model):
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='availability')
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateTimeField(blank=True, null=True)
+    end_date = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"Unavailable: {self.car.make} {self.car.model} ({self.start_date} - {self.end_date})" 
