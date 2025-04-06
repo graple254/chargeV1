@@ -243,6 +243,10 @@ def lister_dashboard(request):
 
     return render(request, "lister/dashboard.html", context)
 
+
+#This Section is for managing the lister's fleet of cars, allowing them to view, search, and paginate their car listings.👇
+
+
 @login_required
 @role_required("lister")
 def manage_fleet(request):
@@ -292,48 +296,6 @@ def car_availability_json(request, car_id):
     return JsonResponse(events, safe=False)
 
 
-@login_required
-@role_required("lister")
-def manage_bookings(request):
-    """ View for managing bookings of listed cars """
-    lister = request.user.lister_profile
-    bookings = Booking.objects.filter(car__lister=lister)
-
-    context = {
-        'bookings': bookings,
-    }
-    return render(request, 'lister/manage_bookings.html', context)
-
-
-@login_required
-@role_required("lister")
-def lister_profile(request):
-    """ View for managing the lister’s profile """
-    lister = request.user.lister_profile
-
-    context = {
-        'lister': lister,
-    }
-    return render(request, 'lister/Lister_profile.html', context)
-
-@login_required
-@role_required("lister")
-def lister_reviews_complaints(request):
-    """ Fetches all reviews and complaints related to the lister """
-    user = request.user
-
-    try:
-        lister = user.lister_profile
-    except ListerProfile.DoesNotExist:
-        return JsonResponse({"error": "Profile not found. Please create one."}, status=400)
-
-    # Fetch complaints where the lister is the accused
-    complaints = Complaint.objects.filter(accused=user).order_by("-created_at")
-
-    # Fetch reviews for the lister's cars
-    reviews = RenterReview.objects.filter(car__lister=lister).order_by("-created_at")
-
-    return render(request, "lister/reviews_complaints.html", {"complaints": complaints, "reviews": reviews})
 
 # Lister Functions HERE 👇 
 
@@ -544,6 +506,163 @@ def respond_to_review(request, review_id):
         return JsonResponse({"message": "Reply added successfully"})
 
     return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+
+# This is the END of the manage fleet section for the lister Mada Fleka✌️
+
+
+#THis section is for the booking management by a lister such as deleting, editing or viewing details Be warned👇
+
+
+@login_required
+@role_required("lister")
+def manage_bookings(request):
+    """View for managing bookings of listed cars"""
+    lister = request.user.lister_profile
+    bookings = Booking.objects.filter(car__lister=lister).order_by('-created_at')  # Sort by creation date
+
+    # Pagination
+    paginator = Paginator(bookings, 10)  # 10 bookings per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+    }
+    return render(request, 'lister/manage_bookings.html', context)
+
+
+@login_required
+@role_required("lister")
+def filter_bookings_json(request):
+    """JSON endpoint to fetch filtered bookings"""
+    lister = request.user.lister_profile
+    filter_type = request.GET.get('filter', 'all')
+    bookings = Booking.objects.filter(car__lister=lister).order_by('-created_at')
+
+    today = timezone.now()
+
+    if filter_type == 'today':
+        bookings = bookings.filter(start_date__lte=today, end_date__gte=today)
+    elif filter_type == 'monthly':
+        current_month = today.month
+        current_year = today.year
+        bookings = bookings.filter(start_date__year=current_year, start_date__month=current_month)
+    elif filter_type == 'yearly':
+        current_year = today.year
+        bookings = bookings.filter(start_date__year=current_year)
+
+    # Serialize bookings with image URL
+    booking_list = [
+        {
+            'id': booking.id,
+            'car': f"{booking.car.make} {booking.car.model}",
+            'renter': booking.renter.username,
+            'start_date': booking.start_date.isoformat() if booking.start_date else None,
+            'end_date': booking.end_date.isoformat() if booking.end_date else None,
+            'pickup_location': booking.pickup_location,
+            'return_location': booking.return_location,
+            'total_cost': float(booking.total_cost) if booking.total_cost else 0.0,
+            'status': booking.status,
+            'created_at': booking.created_at.isoformat(),
+            'car_image': booking.car.images.first().image.url if booking.car.images.exists() else None,
+        }
+        for booking in bookings
+    ]
+
+    return JsonResponse(booking_list, safe=False)
+
+
+@login_required
+@role_required("lister")
+@require_POST
+def edit_booking(request, booking_id):
+    """API to edit a booking"""
+    lister = request.user.lister_profile
+    try:
+        booking = Booking.objects.get(id=booking_id, car__lister=lister)
+    except Booking.DoesNotExist:
+        return JsonResponse({"error": "Booking not found or you don’t have permission."}, status=404)
+
+    data = json.loads(request.body)
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    pickup_location = data.get('pickup_location')
+    return_location = data.get('return_location')
+    total_cost = data.get('total_cost')
+    status = data.get('status')
+
+    # Update fields if provided
+    if start_date:
+        booking.start_date = timezone.datetime.fromisoformat(start_date)
+    if end_date:
+        booking.end_date = timezone.datetime.fromisoformat(end_date)
+    if pickup_location:
+        booking.pickup_location = pickup_location
+    if return_location:
+        booking.return_location = return_location
+    if total_cost is not None:
+        booking.total_cost = total_cost
+    if status in dict(Booking.STATUS_CHOICES):  # Validate status
+        booking.status = status
+
+    try:
+        booking.clean()  # Run model validation
+        booking.save()
+        return JsonResponse({"message": "Booking updated successfully!"}, status=200)
+    except ValidationError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    
+
+@login_required
+@role_required("lister")
+@require_POST
+def delete_booking(request, booking_id):
+    """API to delete a booking"""
+    lister = request.user.lister_profile
+    try:
+        booking = Booking.objects.get(id=booking_id, car__lister=lister)
+    except Booking.DoesNotExist:
+        return JsonResponse({"error": "Booking not found or you don’t have permission."}, status=404)
+
+    booking.delete()
+    return JsonResponse({"message": "Booking deleted successfully!"}, status=200)    
+
+
+#  This is the END Of the bookings management by a lister Mada Fleka ✌️
+
+
+
+@login_required
+@role_required("lister")
+def lister_profile(request):
+    """ View for managing the lister’s profile """
+    lister = request.user.lister_profile
+
+    context = {
+        'lister': lister,
+    }
+    return render(request, 'lister/Lister_profile.html', context)
+
+@login_required
+@role_required("lister")
+def lister_reviews_complaints(request):
+    """ Fetches all reviews and complaints related to the lister """
+    user = request.user
+
+    try:
+        lister = user.lister_profile
+    except ListerProfile.DoesNotExist:
+        return JsonResponse({"error": "Profile not found. Please create one."}, status=400)
+
+    # Fetch complaints where the lister is the accused
+    complaints = Complaint.objects.filter(accused=user).order_by("-created_at")
+
+    # Fetch reviews for the lister's cars
+    reviews = RenterReview.objects.filter(car__lister=lister).order_by("-created_at")
+
+    return render(request, "lister/reviews_complaints.html", {"complaints": complaints, "reviews": reviews})
 
 
 

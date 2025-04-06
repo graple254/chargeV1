@@ -4,6 +4,26 @@
 {% block title %}Manage Fleet{% endblock %}
 
 {% block content %}
+<style>
+    .success-checkmark {
+    animation: pop 0.5s ease-in-out;
+}
+
+@keyframes pop {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
 <div class="container-fluid py-4 mb-5 pb-5">
     <h4>Manage Your Fleet</h4>
 
@@ -48,7 +68,7 @@
                     <td>{{ car.model }}</td>
                     <td>{{ car.vehicle_type }}</td>
                     <td>
-                        <button class="btn btn-primary" type="button">
+                        <button class="btn btn-primary view-schedule-btn" type="button" data-bs-toggle="modal" data-bs-target="#carModal{{ car.id }}" data-car-id="{{ car.id }}">
                             View Schedule
                         </button>
                     </td>
@@ -100,15 +120,18 @@
             </div>
             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                 <!-- Tab Navigation -->
+                <!-- Inside the modal's tab navigation -->
                 <ul class="nav nav-tabs" id="carTab{{ car.id }}" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="details-tab{{ car.id }}" data-bs-toggle="tab" data-bs-target="#details{{ car.id }}" type="button" role="tab" aria-controls="details{{ car.id }}" aria-selected="true">Details</button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="schedule-tab{{ car.id }}" data-bs-toggle="tab" data-bs-target="#schedule{{ car.id }}" type="button" role="tab" aria-controls="schedule{{ car.id }}" aria-selected="false">Schedule</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link" id="edit-tab{{ car.id }}" data-bs-toggle="tab" data-bs-target="#edit{{ car.id }}" type="button" role="tab" aria-controls="edit{{ car.id }}" aria-selected="false">Edit</button>
                     </li>
                 </ul>
-
                 <!-- Tab Content -->
                 <div class="tab-content mt-3" id="carTabContent{{ car.id }}">
                     <!-- Details Tab -->
@@ -137,7 +160,71 @@
                         </div>
                     </div>
 
-                      
+<!-- Inside the Schedule tab -->
+<div class="tab-pane fade" id="schedule{{ car.id }}" role="tabpanel" aria-labelledby="schedule-tab{{ car.id }}">
+    <div class="card shadow-sm p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title text-primary mb-0">
+                <i class="bi bi-calendar-event"></i> Booking Schedule
+            </h5>
+            <button class="btn btn-outline-success btn-sm set-availability-btn" data-car-id="{{ car.id }}">
+                <i class="bi bi-wrench"></i> Set Availability
+            </button>
+        </div>
+        <div id="schedule-content{{ car.id }}">
+            <div class="mb-3 d-flex gap-2">
+                <select class="form-select w-50" id="year-filter{{ car.id }}" name="year-filter">
+                    <option value="">All Years</option>
+                </select>
+                <select class="form-select w-50" id="month-filter{{ car.id }}" name="month-filter">
+                    <option value="">All Months</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div id="loading{{ car.id }}" class="text-center text-muted" style="display: none;">
+                <i class="bi bi-arrow-clockwise spin"></i> Loading schedule...
+            </div>
+            <div id="schedule-list{{ car.id }}" class="list-group"></div>
+            <p id="no-schedule{{ car.id }}" class="text-muted mt-2" style="display: none;">No bookings scheduled for this car.</p>
+        </div>
+        <!-- Availability Form (hidden by default) -->
+        <div id="availability-form{{ car.id }}" style="display: none;">
+            <form id="set-availability-form{{ car.id }}" class="p-3">
+                <div class="mb-3">
+                    <label for="start-date{{ car.id }}" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start-date{{ car.id }}" name="start_date" required>
+                </div>
+                <div class="mb-3">
+                    <label for="end-date{{ car.id }}" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end-date{{ car.id }}" name="end_date" required>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="button" class="btn btn-secondary cancel-availability" data-car-id="{{ car.id }}">Cancel</button>
+                </div>
+            </form>
+        </div>
+        <!-- Success Message (hidden by default) -->
+        <div id="success-message{{ car.id }}" class="text-center" style="display: none;">
+            <div class="success-checkmark">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+            </div>
+            <p class="text-success mt-2">Availability updated successfully!</p>
+        </div>
+    </div>
+</div>
+
                     <!-- Edit Tab -->
                     <div class="tab-pane fade" id="edit{{ car.id }}" role="tabpanel" aria-labelledby="edit-tab{{ car.id }}">
                         <div class="card border-0 shadow-sm p-4">
@@ -268,7 +355,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="deleteCar({{ car.id }})">Delete</button>
+                <button type="button" class="btn btn-danger" onclick="deleteCar('{{ car.id }}')">Delete</button>
             </div>
         </div>
     </div>
@@ -278,10 +365,28 @@
 <!-- ===================== Floating Create Button & Modal ===================== -->
 
 <!-- Floating Create Button -->
-<button class="btn btn-primary position-fixed bottom-3 end-3 mb-5 me-3 shadow-lg rounded-pill p-3"
-    data-bs-toggle="modal" data-bs-target="#createCarModal" style="z-index: 1050;">
-    <i class="bi bi-plus-circle-fill"></i>
+<button class="btn btn-primary position-fixed bottom-3 end-3 mb-5 me-3 shadow-lg rounded-pill p-3 d-flex align-items-center justify-content-center"
+    data-bs-toggle="modal" data-bs-target="#createCarModal" style="z-index: 1050; width: 60px; height: 60px;">
+    <i class="bi bi-plus-circle-fill fs-4"></i>
 </button>
+
+<!-- Tooltip for Floating Button -->
+<div class="toast position-fixed bottom-5 end-3 bg-dark text-white" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 1050;">
+    <div class="toast-body d-flex align-items-center">
+        <i class="bi bi-lightbulb me-2"></i>
+        Create a car listing!
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+</div>
+
+<script>
+    // Show the toast tooltip randomly after a delay
+    document.addEventListener('DOMContentLoaded', function () {
+        const toastElement = document.querySelector('.toast');
+        const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
+        setTimeout(() => toast.show(), Math.random() * 1000 + 2000); // Random delay between 2-7 seconds
+    });
+</script>
 <!-- Create Car Modal -->
 <div class="modal fade" id="createCarModal" tabindex="-1" aria-labelledby="createCarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -395,8 +500,206 @@
     </div>
 </div>
 
-    
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('.view-schedule-btn').on('click', function() {
+        const carId = $(this).data('car-id');
+        const modal = $(`#carModal${carId}`);
+        const scheduleList = $(`#schedule-list${carId}`);
+        const noScheduleMsg = $(`#no-schedule${carId}`);
+        const loadingIndicator = $(`#loading${carId}`);
+        const yearFilter = $(`#year-filter${carId}`);
+        const monthFilter = $(`#month-filter${carId}`);
+        const scheduleContent = $(`#schedule-content${carId}`);
 
+        // Switch to the Schedule tab
+        modal.find('#schedule-tab' + carId).tab('show');
+
+        // Clear previous content and show loading
+        scheduleList.empty();
+        noScheduleMsg.hide();
+        loadingIndicator.show();
+        yearFilter.empty().append('<option value="">All Years</option>');
+
+        // Get current date for default filter
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based
+
+        // Function to load and display schedule
+        function loadSchedule() {
+            $.ajax({
+                url: `/car/${carId}/availability/`,
+                method: 'GET',
+                beforeSend: function() {
+                    loadingIndicator.show();
+                },
+                success: function(data) {
+                    loadingIndicator.hide();
+
+                    if (data.length === 0) {
+                        noScheduleMsg.show();
+                        return;
+                    }
+
+                    // Extract unique years from the data
+                    const years = [...new Set(data.map(event => new Date(event.start).getFullYear()))].sort();
+                    years.forEach(year => {
+                        yearFilter.append(`<option value="${year}">${year}</option>`);
+                    });
+
+                    // Store the full dataset for filtering
+                    let allBookings = data;
+
+                    // Function to display bookings based on filters
+                    function displayBookings(bookings) {
+                        scheduleList.empty();
+                        if (bookings.length === 0) {
+                            noScheduleMsg.show();
+                            return;
+                        }
+                        bookings.forEach(event => {
+                            const startDate = new Date(event.start);
+                            const endDate = new Date(event.end);
+                            const startFormatted = startDate.toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                            const endFormatted = endDate.toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                            const item = `
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><strong>Booked:</strong> ${startFormatted} - ${endFormatted}</span>
+                                    <span class="badge bg-primary rounded-pill">Completed</span>
+                                </div>
+                            `;
+                            scheduleList.append(item);
+                        });
+                    }
+
+                    // Initial display: filter to current month/year and beyond
+                    let initialBookings = allBookings.filter(event => {
+                        const startDate = new Date(event.start);
+                        const eventYear = startDate.getFullYear();
+                        const eventMonth = startDate.getMonth() + 1;
+                        return eventYear > currentYear || (eventYear === currentYear && eventMonth >= currentMonth);
+                    });
+                    displayBookings(initialBookings);
+
+                    // Handle filter changes
+                    yearFilter.add(monthFilter).on('change', function() {
+                        const selectedYear = yearFilter.val();
+                        const selectedMonth = monthFilter.val();
+
+                        let filteredBookings = allBookings;
+                        if (selectedYear) {
+                            filteredBookings = filteredBookings.filter(event => 
+                                new Date(event.start).getFullYear() == selectedYear
+                            );
+                        }
+                        if (selectedMonth) {
+                            filteredBookings = filteredBookings.filter(event => 
+                                new Date(event.start).getMonth() + 1 == selectedMonth
+                            );
+                        }
+                        displayBookings(filteredBookings);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    loadingIndicator.hide();
+                    if (status === 'timeout') {
+                        scheduleList.append('<div class="list-group-item text-danger">Request timed out. Please try again.</div>');
+                    } else {
+                        scheduleList.append('<div class="list-group-item text-danger">Error loading schedule.</div>');
+                    }
+                }
+            });
+        }
+
+        // Initial load of schedule
+        loadSchedule();
+    });
+
+    // Set Availability Button Logic
+    $('.set-availability-btn').on('click', function() {
+        const carId = $(this).data('car-id');
+        const scheduleContent = $(`#schedule-content${carId}`);
+        const availabilityForm = $(`#availability-form${carId}`);
+        const successMessage = $(`#success-message${carId}`);
+
+        // Hide schedule content and show form
+        scheduleContent.hide();
+        availabilityForm.show();
+        successMessage.hide();
+    });
+
+    // Cancel Button Logic
+    $('.cancel-availability').on('click', function() {
+        const carId = $(this).data('car-id');
+        const scheduleContent = $(`#schedule-content${carId}`);
+        const availabilityForm = $(`#availability-form${carId}`);
+
+        // Hide form and show schedule
+        availabilityForm.hide();
+        scheduleContent.show();
+    });
+
+    // Form Submission Logic
+    $('[id^="set-availability-form"]').on('submit', function(e) {
+        e.preventDefault();
+        const carId = this.id.replace('set-availability-form', '');
+        const scheduleContent = $(`#schedule-content${carId}`);
+        const availabilityForm = $(`#availability-form${carId}`);
+        const successMessage = $(`#success-message${carId}`);
+        const startDate = $(`#start-date${carId}`).val();
+        const endDate = $(`#end-date${carId}`).val();
+
+        // Client-side validation
+        if (new Date(endDate) < new Date(startDate)) {
+            availabilityForm.prepend('<div class="alert alert-danger">End date must be after start date.</div>');
+            setTimeout(() => availabilityForm.find('.alert').remove(), 3000);
+            return;
+        }
+
+        $.ajax({
+            url: `/cars/${carId}/availability/`,
+            method: 'POST',
+            headers: { 'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val() },
+            contentType: 'application/json',
+            data: JSON.stringify({ start_date: startDate, end_date: end_date }),
+            beforeSend: function() {
+                availabilityForm.find('button[type="submit"]').prop('disabled', true).text('Submitting...');
+            },
+            success: function(response) {
+                availabilityForm.hide();
+                successMessage.show();
+
+                // Reset form and revert after 2 seconds
+                setTimeout(() => {
+                    successMessage.hide();
+                    scheduleContent.show();
+                    availabilityForm.find('button[type="submit"]').prop('disabled', false).text('Submit');
+                    availabilityForm[0].reset();
+                    $(`.view-schedule-btn[data-car-id="${carId}"]`).trigger('click'); // Reload schedule
+                }, 2000);
+            },
+            error: function(xhr) {
+                availabilityForm.find('button[type="submit"]').prop('disabled', false).text('Submit');
+                const errorMsg = xhr.responseJSON?.error || 'Error setting availability.';
+                availabilityForm.prepend(`<div class="alert alert-danger">${errorMsg}</div>`);
+                setTimeout(() => availabilityForm.find('.alert').remove(), 3000);
+            }
+        });
+    });
+});
+</script>
 <!-- ===================== Script Section ===================== -->
 <script>
 // ----------------- Shared Image Preview Functions -----------------

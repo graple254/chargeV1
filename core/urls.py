@@ -34,6 +34,11 @@ urlpatterns = [
     # Car Availability
     path("cars/<int:car_id>/availability/", set_car_availability, name="set_car_availability"),
 
+    # Booking Management
+    path('bookings/filter/', filter_bookings_json, name='filter_bookings_json'),
+    path('bookings/<int:booking_id>/edit/', edit_booking, name='edit_booking'),
+    path('bookings/<int:booking_id>/delete/', delete_booking, name='delete_booking'),
+
 
     # Reviews and Complaints
     path('reviews/respond/<int:review_id>/', respond_to_review, name='respond_to_review'),

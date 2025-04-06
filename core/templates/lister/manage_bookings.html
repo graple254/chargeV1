@@ -1,0 +1,309 @@
+{% extends 'lister/baseBus.html' %}
+{% load static %}
+
+{% block title %}Manage Bookings{% endblock %}
+
+{% block content %}
+<style>
+    .success-checkmark {
+        animation: pop 0.5s ease-in-out;
+    }
+
+    @keyframes pop {
+        0% { transform: scale(0); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+</style>
+<div class="container-fluid py-4 mb-5 pb-8">
+    <h4>Manage Your Bookings</h4>
+
+    <!-- Filter Buttons -->
+    <div class="mb-3 d-flex gap-2">
+        <button class="btn btn-outline-primary filter-btn" data-filter="today">Today</button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="monthly">This Month</button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="yearly">This Year</button>
+        <button class="btn btn-outline-secondary filter-btn" data-filter="all">All Bookings</button>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Car Image</th>
+                    <th>Car</th>
+                    <th>Renter</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="bookings-table-body">
+                {% for booking in page_obj %}
+                <tr>
+                    <td>
+                        {% if booking.car.images.first %}
+                        <img src="{{ booking.car.images.first.image.url }}" alt="{{ booking.car.make }} {{ booking.car.model }}" width="100" height="70" class="rounded">
+                        {% else %}
+                        <img src="{% static 'images/default-car.jpg' %}" alt="No Image" width="100" height="70" class="rounded">
+                        {% endif %}
+                    </td>
+                    <td>{{ booking.car.make }} {{ booking.car.model }}</td>
+                    <td>{{ booking.renter.username }}</td>
+                    <td>{{ booking.start_date|date:"D, M d, Y" }}</td>
+                    <td>{{ booking.end_date|date:"D, M d, Y" }}</td>
+                    <td>
+                        <span class="badge bg-{% if booking.status == 'CONFIRMED' %}success{% elif booking.status == 'PENDING' %}warning{% elif booking.status == 'CANCELLED' %}danger{% else %}primary{% endif %}">
+                            {{ booking.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary view-booking-btn" type="button" data-bs-toggle="modal" data-bs-target="#bookingModal{{ booking.id }}" data-booking-id="{{ booking.id }}">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No bookings found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Bookings pagination">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">« Prev</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next »</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- Booking-Specific Modals -->
+{% for booking in page_obj %}
+<div class="modal fade" id="bookingModal{{ booking.id }}" tabindex="-1" aria-labelledby="bookingModalLabel{{ booking.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookingModalLabel{{ booking.id }}">{{ booking.car.make }} {{ booking.car.model }} - Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs" id="bookingTab{{ booking.id }}" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab{{ booking.id }}" data-bs-toggle="tab" data-bs-target="#details{{ booking.id }}" type="button" role="tab" aria-controls="details{{ booking.id }}" aria-selected="true">Details</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="edit-tab{{ booking.id }}" data-bs-toggle="tab" data-bs-target="#edit{{ booking.id }}" type="button" role="tab" aria-controls="edit{{ booking.id }}" aria-selected="false">Edit/Delete</button>
+                    </li>
+                </ul>
+                <!-- Tab Content -->
+                <div class="tab-content mt-3" id="bookingTabContent{{ booking.id }}">
+                    <!-- Details Tab -->
+                    <div class="tab-pane fade show active" id="details{{ booking.id }}" role="tabpanel" aria-labelledby="details-tab{{ booking.id }}">
+                        <div class="card shadow-sm p-3">
+                            <h5 class="card-title text-primary">
+                                <i class="bi bi-car-front-fill"></i> Booking Details
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-car-front"></i> <strong>Car:</strong> {{ booking.car.make }} {{ booking.car.model }}</p>
+                                    <p><i class="bi bi-person"></i> <strong>Renter:</strong> {{ booking.renter.username }}</p>
+                                    <p><i class="bi bi-calendar-event"></i> <strong>Start Date:</strong> {{ booking.start_date|date:"D, M d, Y H:i" }}</p>
+                                    <p><i class="bi bi-calendar-check"></i> <strong>End Date:</strong> {{ booking.end_date|date:"D, M d, Y H:i" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-geo-alt"></i> <strong>Pickup Location:</strong> {{ booking.pickup_location|default:"N/A" }}</p>
+                                    <p><i class="bi bi-geo-alt-fill"></i> <strong>Return Location:</strong> {{ booking.return_location|default:"N/A" }}</p>
+                                    <p><i class="bi bi-cash-stack"></i> <strong>Total Cost:</strong> ${{ booking.total_cost|default:"0.00" }}</p>
+                                    <p><i class="bi bi-tag"></i> <strong>Status:</strong> 
+                                        <span class="badge bg-{% if booking.status == 'CONFIRMED' %}success{% elif booking.status == 'PENDING' %}warning{% elif booking.status == 'CANCELLED' %}danger{% else %}primary{% endif %}">
+                                            {{ booking.status }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <hr>
+                            <p><i class="bi bi-clock"></i> <strong>Created At:</strong> {{ booking.created_at|date:"D, M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                    <!-- Edit/Delete Tab -->
+                    <div class="tab-pane fade" id="edit{{ booking.id }}" role="tabpanel" aria-labelledby="edit-tab{{ booking.id }}">
+                        <div class="card border-0 shadow-sm p-4">
+                            <h5 class="card-title mb-3"><i class="bi bi-pencil-square"></i> Edit Booking</h5>
+                            <form id="editBookingForm{{ booking.id }}">
+                                {% csrf_token %}
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="start_date{{ booking.id }}" class="form-label">Start Date</label>
+                                        <input type="datetime-local" class="form-control" id="start_date{{ booking.id }}" name="start_date" value="{{ booking.start_date|date:'Y-m-d\\TH:i' }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="end_date{{ booking.id }}" class="form-label">End Date</label>
+                                        <input type="datetime-local" class="form-control" id="end_date{{ booking.id }}" name="end_date" value="{{ booking.end_date|date:'Y-m-d\\TH:i' }}" required>
+                                    </div>
+                                </div>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label for="pickup_location{{ booking.id }}" class="form-label">Pickup Location</label>
+                                        <input type="text" class="form-control" id="pickup_location{{ booking.id }}" name="pickup_location" value="{{ booking.pickup_location|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="return_location{{ booking.id }}" class="form-label">Return Location</label>
+                                        <input type="text" class="form-control" id="return_location{{ booking.id }}" name="return_location" value="{{ booking.return_location|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label for="total_cost{{ booking.id }}" class="form-label">Total Cost</label>
+                                        <input type="number" step="0.01" class="form-control" id="total_cost{{ booking.id }}" name="total_cost" value="{{ booking.total_cost|default:'' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="status{{ booking.id }}" class="form-label">Status</label>
+                                        <select class="form-select" id="status{{ booking.id }}" name="status">
+                                            {% for value, label in booking.STATUS_CHOICES %}
+                                            <option value="{{ value }}" {% if booking.status == value %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="text-end mt-4 d-flex gap-2 justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    <button type="button" class="btn btn-danger delete-booking-btn" data-booking-id="{{ booking.id }}">Delete Booking</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Filter Button Logic
+    $('.filter-btn').on('click', function() {
+        const filter = $(this).data('filter');
+        $.ajax({
+            url: "{% url 'filter_bookings_json' %}",
+            method: 'GET',
+            data: { filter: filter },
+            success: function(data) {
+                const tbody = $('#bookings-table-body');
+                tbody.empty();
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="7" class="text-center">No bookings found.</td></tr>');
+                    return;
+                }
+                data.forEach(booking => {
+                    const statusClass = {
+                        'CONFIRMED': 'bg-success',
+                        'PENDING': 'bg-warning',
+                        'CANCELLED': 'bg-danger',
+                        'COMPLETED': 'bg-primary'
+                    }[booking.status] || 'bg-primary';
+                    const carImage = booking.car_image ? booking.car_image : '{% static "images/default-car.jpg" %}';
+                    const row = `
+                        <tr>
+                            <td><img src="${carImage}" alt="${booking.car}" width="100" height="70" class="rounded"></td>
+                            <td>${booking.car}</td>
+                            <td>${booking.renter}</td>
+                            <td>${new Date(booking.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                            <td>${new Date(booking.end_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                            <td><span class="badge ${statusClass}">${booking.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary view-booking-btn" type="button" data-bs-toggle="modal" data-bs-target="#bookingModal${booking.id}" data-booking-id="${booking.id}">
+                                    Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            },
+            error: function() {
+                $('#bookings-table-body').html('<tr><td colspan="7" class="text-center text-danger">Error loading bookings.</td></tr>');
+            }
+        });
+    });
+
+    // Edit Booking Form Submission
+    $('[id^="editBookingForm"]').on('submit', function(e) {
+        e.preventDefault();
+        const bookingId = this.id.replace('editBookingForm', '');
+        const formData = {
+            start_date: $(`#start_date${bookingId}`).val(),
+            end_date: $(`#end_date${bookingId}`).val(),
+            pickup_location: $(`#pickup_location${bookingId}`).val(),
+            return_location: $(`#return_location${bookingId}`).val(),
+            total_cost: $(`#total_cost${bookingId}`).val(),
+            status: $(`#status${bookingId}`).val()
+        };
+
+        $.ajax({
+            url: `/bookings/${bookingId}/edit/`,
+            method: 'POST',
+            headers: { 'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val() },
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            beforeSend: function() {
+                $(`#editBookingForm${bookingId} button[type="submit"]`).prop('disabled', true).text('Saving...');
+            },
+            success: function(response) {
+                $(`#bookingModal${bookingId}`).modal('hide');
+                alert(response.message);
+                $('.filter-btn[data-filter="all"]').trigger('click'); // Refresh table
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.error || 'Error updating booking.';
+                alert(errorMsg);
+            },
+            complete: function() {
+                $(`#editBookingForm${bookingId} button[type="submit"]`).prop('disabled', false).text('Save Changes');
+            }
+        });
+    });
+
+    // Delete Booking Logic
+    $('.delete-booking-btn').on('click', function() {
+        const bookingId = $(this).data('booking-id');
+        if (confirm('Are you sure you want to delete this booking?')) {
+            $.ajax({
+                url: `/bookings/${bookingId}/delete/`,
+                method: 'POST',
+                headers: { 'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val() },
+                contentType: 'application/json',
+            success: function(response) {
+                  alert(response.message);
+                  window.location.reload(); // Refresh the page to update the bookings list
+            },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.error || 'Error deleting booking.';
+                    alert(errorMsg);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
