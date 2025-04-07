@@ -21,6 +21,7 @@ import re
 import decimal
 from django.utils.timezone import localtime, now
 from datetime import timedelta
+from decimal import Decimal
 
 
 
@@ -595,15 +596,20 @@ def edit_booking(request, booking_id):
 
     # Update fields if provided
     if start_date:
-        booking.start_date = timezone.datetime.fromisoformat(start_date)
+        naive_start = timezone.datetime.fromisoformat(start_date)
+        booking.start_date = timezone.make_aware(naive_start)  # Make it aware (default to UTC)
     if end_date:
-        booking.end_date = timezone.datetime.fromisoformat(end_date)
+        naive_end = timezone.datetime.fromisoformat(end_date)
+        booking.end_date = timezone.make_aware(naive_end)      # Make it aware (default to UTC)
     if pickup_location:
         booking.pickup_location = pickup_location
     if return_location:
         booking.return_location = return_location
     if total_cost is not None:
-        booking.total_cost = total_cost
+        try:
+            booking.total_cost = Decimal(total_cost)  # Convert string to Decimal
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Invalid total cost format."}, status=400)
     if status in dict(Booking.STATUS_CHOICES):  # Validate status
         booking.status = status
 

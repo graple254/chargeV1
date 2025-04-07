@@ -270,9 +270,8 @@ $(document).ready(function() {
                 $(`#editBookingForm${bookingId} button[type="submit"]`).prop('disabled', true).text('Saving...');
             },
             success: function(response) {
-                $(`#bookingModal${bookingId}`).modal('hide');
-                alert(response.message);
-                $('.filter-btn[data-filter="all"]').trigger('click'); // Refresh table
+                alert(response.message || 'Booking updated successfully!');
+                window.location.reload(); // Refresh the page to see updated bookings
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON?.error || 'Error updating booking.';
