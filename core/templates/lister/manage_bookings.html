@@ -31,6 +31,7 @@
         <table class="table table-hover">
             <thead>
                 <tr>
+                    <th>Booking ID</th>
                     <th>Car Image</th>
                     <th>Car</th>
                     <th>Renter</th>
@@ -43,6 +44,7 @@
             <tbody id="bookings-table-body">
                 {% for booking in page_obj %}
                 <tr>
+                    <td>{{ booking.id }}</td>
                     <td>
                         {% if booking.car.images.first %}
                         <img src="{{ booking.car.images.first.image.url }}" alt="{{ booking.car.make }} {{ booking.car.model }}" width="100" height="70" class="rounded">
@@ -67,7 +69,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center">No bookings found.</td>
+                    <td colspan="8" class="text-center">No bookings found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

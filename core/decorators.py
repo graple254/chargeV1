@@ -23,3 +23,13 @@ def role_required(role):
 
         return _wrapped_view
     return decorator
+
+
+from django.shortcuts import redirect
+
+def block_listers(view_func):
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, "listerprofile"):
+            return redirect("lister_dashboard")
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view

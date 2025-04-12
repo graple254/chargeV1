@@ -1,5 +1,7 @@
 from pathlib import Path
 import os
+import storages
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -13,9 +15,7 @@ SECRET_KEY = 'django-insecure-hsge4gs^c%=t=i9^p)6u_=u!5$xunfgvw1&2jajzv7k8kcvk2w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['5a4e-41-90-176-18.ngrok-free.app', 'localhost', '127.0.0.1']
-
-CSRF_TRUSTED_ORIGINS = ['https://5a4e-41-90-176-18.ngrok-free.app']
+ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
@@ -26,12 +26,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
+    'storages',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'core.middleware.VisitorTrackingMiddleware',
+    'core.middleware.RoleRedirectMiddleware',  # add this line
+    'core.middleware.BlockListersFromRenterViewsMiddleware',  # add this line
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -150,3 +153,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+

@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from core.auth import * # Import from auth.py
 import time
-from .decorators import role_required
+from .decorators import role_required, block_listers
 from .models import *
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
@@ -676,7 +676,7 @@ def lister_reviews_complaints(request):
 
 
 # Renter views and Functionalities HERE 👇 ##############################################################################
-
+@block_listers
 @csrf_exempt
 def start(request):
     """
@@ -685,6 +685,10 @@ def start(request):
     - Pickup & return date & time
     - Data is passed via GET to car_list view
     """
+        # Redirect listers to their dashboard if they try to access the start view
+    if hasattr(request.user, 'listerprofile'):
+        return redirect('lister_dashboard')  # Or use reverse('lister_dashboard')
+
     if request.method == "POST":
         pickup_location = request.POST.get("pickup_location")
         return_location = request.POST.get("return_location")
@@ -701,7 +705,7 @@ def start(request):
     return render(request, "renter/index.html")
 
 
-
+@block_listers
 def car_list(request):
     """ 
     Lists available cars based on:
@@ -791,7 +795,7 @@ def car_list(request):
     })
 
 
-
+@block_listers
 @login_required
 def car_booking(request, car_id):
     """Handles the car booking process."""
@@ -935,7 +939,7 @@ def car_booking(request, car_id):
     return render(request, "renter/car_booking.html", context)
 
 
-
+@block_listers
 @login_required
 @role_required("Renter")
 def my_trips(request):
@@ -963,7 +967,7 @@ def my_trips(request):
     })
 
 
-
+@block_listers
 @login_required
 @role_required("Renter")
 def renter_profile(request):
