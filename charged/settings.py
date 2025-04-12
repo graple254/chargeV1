@@ -15,8 +15,13 @@ SECRET_KEY = 'django-insecure-hsge4gs^c%=t=i9^p)6u_=u!5$xunfgvw1&2jajzv7k8kcvk2w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-# Application definition
+ALLOWED_HOSTS = ['*', 'www.ccharge.club', 'ccharge.club']
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://www.ccharge.club",
+    "https://ccharge.club",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -25,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "whitenoise.runserver_nostatic",
     'core',
     'storages',
 ]
@@ -35,6 +41,7 @@ MIDDLEWARE = [
     'core.middleware.VisitorTrackingMiddleware',
     'core.middleware.RoleRedirectMiddleware',  # add this line
     'core.middleware.BlockListersFromRenterViewsMiddleware',  # add this line
+    'whitenoise.middleware.WhiteNoiseMiddleware', #make sure to add this line
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -68,8 +75,12 @@ WSGI_APPLICATION = 'charged.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'chargerental',
+        'USER': 'superuser',
+        'PASSWORD': 'Energy51200',
+        'HOST': 'charge-rentals.copmi6cmsk6q.us-east-1.rds.amazonaws.com',
+        'PORT': '5432',
     }
 }
 
