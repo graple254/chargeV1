@@ -12,16 +12,17 @@ fi
 # Change ownership to ubuntu user
 sudo chown -R ubuntu:ubuntu "/home/ubuntu/$PROJECT_MAIN_DIR_NAME"
 
-# Create virtual environment
+# Create virtual environment as ubuntu
+sudo -u ubuntu bash <<EOF
+cd "/home/ubuntu/$PROJECT_MAIN_DIR_NAME"
+
 echo "Creating virtual environment..."
-virtualenv "/home/ubuntu/$PROJECT_MAIN_DIR_NAME/venv"
+python3 -m venv venv
 
-# Activate virtual environment
-echo "Activating virtual environment..."
-source "/home/ubuntu/$PROJECT_MAIN_DIR_NAME/venv/bin/activate"
-
-# Install dependencies
-echo "Installing Python dependencies..."
-pip install -r "/home/ubuntu/$PROJECT_MAIN_DIR_NAME/requirements.txt"
+echo "Activating virtual environment and installing dependencies..."
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
 
 echo "Dependencies installed successfully."
+EOF
