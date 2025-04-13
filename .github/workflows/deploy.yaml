@@ -1,0 +1,33 @@
+name: Deploy to EC2 🚀
+
+on:
+  push:
+    branches:
+      - "main"  # Triggers deployment when you push to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository ✅
+        uses: actions/checkout@v2
+
+      - name: Set up SSH and Known Hosts 🔐
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy Files to EC2 via rsync 📁
+        run: |
+          rsync -avz --exclude '.git' --exclude '__pycache__' --exclude 'venv' ./ ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/chargeV1
+
+      - name: Run deploy.sh on EC2 🚀
+        run: |
+          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "cd chargeV1 && chmod +x deploy.sh && ./deploy.sh"
+
+      - name: Clean Up SSH Keys 🔐
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
