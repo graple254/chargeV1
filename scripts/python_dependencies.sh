@@ -12,17 +12,21 @@ fi
 # Change ownership to ubuntu user
 sudo chown -R ubuntu:ubuntu "/home/ubuntu/$PROJECT_MAIN_DIR_NAME"
 
-# Create virtual environment as ubuntu
-sudo -u ubuntu bash <<EOF
-cd "/home/ubuntu/$PROJECT_MAIN_DIR_NAME"
+# Make sure system packages needed by psycopg2 are installed
+echo "Installing system dependencies..."
+sudo apt update && sudo apt install -y libpq-dev python3-dev build-essential virtualenv
 
+# Create virtual environment
 echo "Creating virtual environment..."
-python3 -m venv venv
+virtualenv "/home/ubuntu/$PROJECT_MAIN_DIR_NAME/venv"
 
-echo "Activating virtual environment and installing dependencies..."
-source venv/bin/activate
+# Activate virtual environment
+echo "Activating virtual environment..."
+source "/home/ubuntu/$PROJECT_MAIN_DIR_NAME/venv/bin/activate"
+
+# Install Python dependencies
+echo "Installing Python dependencies..."
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r "/home/ubuntu/$PROJECT_MAIN_DIR_NAME/requirements.txt"
 
 echo "Dependencies installed successfully."
-EOF
