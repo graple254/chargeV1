@@ -6,7 +6,7 @@ After=network.target
 [Service]
 User=ubuntu
 Group=www-data
-WorkingDirectory=/home/chargeV1
+WorkingDirectory=/home/ubuntu/chargeV1
 ExecStart=/home/ubuntu/chargeV1/venv/bin/gunicorn \
           --access-logfile - \
           --workers 3 \
