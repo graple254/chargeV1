@@ -280,6 +280,7 @@ def manage_fleet(request):
 @login_required
 @role_required("lister")
 def car_availability_json(request, car_id):
+    print("✅availability endpoint hit!")  # Debug line
     """ JSON endpoint for FullCalendar to fetch availability data """
     car = get_object_or_404(Car, id=car_id, lister=request.user.lister_profile)
     availabilities = car.availability.all()
@@ -451,11 +452,11 @@ def delete_car(request, car_id):
     return JsonResponse({"message": "Car deleted successfully!"}, status=200)
 
 
-# Set car availability
 @login_required
 @role_required("lister")
 @require_POST
 def set_car_availability(request, car_id):
+    print("✅ Set availability endpoint hit!")  # Debug line
     """Handles setting unavailable dates for a car."""
     user = request.user
     try:
@@ -468,15 +469,26 @@ def set_car_availability(request, car_id):
     except Car.DoesNotExist:
         return JsonResponse({"error": "Car not found."}, status=404)
 
-    data = json.loads(request.body)
-    start_date = data.get("start_date")
-    end_date = data.get("end_date")
+    try:
+        data = json.loads(request.body)
+        start_date_str = data.get("start_date")  # e.g., "2025-04-16"
+        end_date_str = data.get("end_date")      # e.g., "2025-04-18")
 
-    if not start_date or not end_date:
-        return JsonResponse({"error": "Both start and end dates are required."}, status=400)
+        if not start_date_str or not end_date_str:
+            return JsonResponse({"error": "Both start and end dates are required."}, status=400)
 
-    CarAvailability.objects.create(car=car, start_date=start_date, end_date=end_date)
-    return JsonResponse({"message": "Car availability updated successfully!"}, status=201)
+        # Convert date strings to timezone-aware datetimes
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+        start_date = timezone.make_aware(start_date)  # Make aware (uses TIME_ZONE or UTC)
+        end_date = timezone.make_aware(end_date)      # Make aware
+
+        CarAvailability.objects.create(car=car, start_date=start_date, end_date=end_date)
+        return JsonResponse({"message": "Car availability updated successfully!"}, status=201)
+    except ValueError as e:
+        return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 

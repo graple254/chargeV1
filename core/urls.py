@@ -32,7 +32,7 @@ urlpatterns = [
 
 
     # Car Availability
-    path("cars/<int:car_id>/availability/", set_car_availability, name="set_car_availability"),
+    path("cars/<int:car_id>/set_car_availability/", set_car_availability, name="set_car_availability"), 
 
     # Booking Management
     path('bookings/filter/', filter_bookings_json, name='filter_bookings_json'),

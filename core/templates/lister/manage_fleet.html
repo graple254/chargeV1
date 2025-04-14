@@ -651,53 +651,59 @@ $(document).ready(function() {
         scheduleContent.show();
     });
 
-    // Form Submission Logic
     $('[id^="set-availability-form"]').on('submit', function(e) {
-        e.preventDefault();
-        const carId = this.id.replace('set-availability-form', '');
-        const scheduleContent = $(`#schedule-content${carId}`);
-        const availabilityForm = $(`#availability-form${carId}`);
-        const successMessage = $(`#success-message${carId}`);
-        const startDate = $(`#start-date${carId}`).val();
-        const endDate = $(`#end-date${carId}`).val();
+    e.preventDefault();
+    const carId = this.id.replace('set-availability-form', '');
+    const scheduleContent = $(`#schedule-content${carId}`);
+    const availabilityForm = $(`#availability-form${carId}`);
+    const successMessage = $(`#success-message${carId}`);
+    const startDate = $(`#start-date${carId}`).val();
+    const endDate = $(`#end-date${carId}`).val();
 
-        // Client-side validation
-        if (new Date(endDate) < new Date(startDate)) {
-            availabilityForm.prepend('<div class="alert alert-danger">End date must be after start date.</div>');
-            setTimeout(() => availabilityForm.find('.alert').remove(), 3000);
-            return;
-        }
+    // Debug: Log variables
+    console.log('Submitting form:', { carId, startDate, endDate });
 
-        $.ajax({
-            url: `/cars/${carId}/availability/`,
-            method: 'POST',
-            headers: { 'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val() },
-            contentType: 'application/json',
-            data: JSON.stringify({ start_date: startDate, end_date: end_date }),
-            beforeSend: function() {
-                availabilityForm.find('button[type="submit"]').prop('disabled', true).text('Submitting...');
-            },
-            success: function(response) {
-                availabilityForm.hide();
-                successMessage.show();
+    // Client-side validation
+    if (new Date(endDate) < new Date(startDate)) {
+        availabilityForm.prepend('<div class="alert alert-danger">End date must be after start date.</div>');
+        setTimeout(() => availabilityForm.find('.alert').remove(), 3000);
+        return;
+    }
 
-                // Reset form and revert after 2 seconds
-                setTimeout(() => {
-                    successMessage.hide();
-                    scheduleContent.show();
-                    availabilityForm.find('button[type="submit"]').prop('disabled', false).text('Submit');
-                    availabilityForm[0].reset();
-                    $(`.view-schedule-btn[data-car-id="${carId}"]`).trigger('click'); // Reload schedule
-                }, 2000);
-            },
-            error: function(xhr) {
+    $.ajax({
+        url: `/cars/${carId}/set_car_availability/`,
+        method: 'POST',
+        headers: { 'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val() },
+        contentType: 'application/json',
+        data: JSON.stringify({ start_date: startDate, end_date: endDate }), // Fixed typo
+        beforeSend: function() {
+            console.log('Sending AJAX to:', `/cars/${carId}/set_car_availability/`);
+            availabilityForm.find('button[type="submit"]').prop('disabled', true).text('Submitting...');
+        },
+        success: function(response) {
+            console.log('Success:', response);
+            availabilityForm.hide();
+            successMessage.show();
+
+            // Reset form and revert after 2 seconds
+            setTimeout(() => {
+                successMessage.hide();
+                scheduleContent.show();
                 availabilityForm.find('button[type="submit"]').prop('disabled', false).text('Submit');
-                const errorMsg = xhr.responseJSON?.error || 'Error setting availability.';
-                availabilityForm.prepend(`<div class="alert alert-danger">${errorMsg}</div>`);
-                setTimeout(() => availabilityForm.find('.alert').remove(), 3000);
-            }
-        });
+                availabilityForm[0].reset();
+                $(`.view-schedule-btn[data-car-id="${carId}"]`).trigger('click'); // Reload schedule
+            }, 2000);
+        },
+        error: function(xhr) {
+            console.log('Error:', xhr.responseText);
+            availabilityForm.find('button[type="submit"]').prop('disabled', false).text('Submit');
+            const errorMsg = xhr.responseJSON?.error || 'Error setting availability.';
+            availabilityForm.prepend(`<div class="alert alert-danger">${errorMsg}</div>`);
+            setTimeout(() => availabilityForm.find('.alert').remove(), 3000);
+        }
     });
+});
+
 });
 </script>
 <!-- ===================== Script Section ===================== -->
