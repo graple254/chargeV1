@@ -14,6 +14,12 @@
                         </div>
                         <h5 class="mt-3">Redirecting to WhatsApp...</h5>
                         <p class="text-muted">You are being redirected to a WhatsApp chat with the lister to confirm your booking and come to an agreement.</p>
+                        <p id="fallbackMessage" class="text-muted" style="display: none;">
+                            If you are not redirected, please click the button below:
+                        </p>
+                        <a id="whatsappButton" class="btn btn-success mt-3" style="display: none;">
+                            <i class="bi bi-whatsapp"></i> Continue to WhatsApp
+                        </a>
                     </div>
                 </div>
             </div>
@@ -29,72 +35,80 @@
                 returnLocation: '{{ bookings.0.return_location|escapejs }}',
                 totalCost: '{{ bookings.0.total_cost|escapejs }}',
                 listerWhatsApp: '{{ bookings.0.car.lister.whatsapp_number|escapejs }}',
-                carImageUrl: '{{ car_image_url|default:""|escapejs }}'  // Add the image URL
+                carImageUrl: '{{ car_image_url|default:""|escapejs }}'
             };
-        
+
             window.addEventListener('load', function() {
                 // Parse the dates
                 var startDate = new Date(recentBooking.startDate);
                 var endDate = new Date(recentBooking.endDate);
-        
+
                 // Define formatting options
                 var dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
                 var timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
                 var dayOptions = { weekday: 'long' };
-        
+
                 // Format the dates, times, and days
                 var formattedStartDate = startDate.toLocaleString('en-US', dateOptions);
                 var formattedStartTime = startDate.toLocaleString('en-US', timeOptions);
                 var startDay = startDate.toLocaleString('en-US', dayOptions);
-        
+
                 var formattedEndDate = endDate.toLocaleString('en-US', dateOptions);
                 var formattedEndTime = endDate.toLocaleString('en-US', timeOptions);
                 var endDay = endDate.toLocaleString('en-US', dayOptions);
-        
-                // Construct the message with line breaks, day of the week, and image URL
+
+                // Construct the message
                 var message = `Hello, I am a customer from Charge Car Rentals.\n\n` +
-                              `I would like to confirm my booking for the ${recentBooking.carMake} ${recentBooking.carModel}.\n\n` +
-                              `Booking ID: ${recentBooking.id}\n\n` +
-                              `Dates:\n` +
-                              `- Pickup: ${startDay}, ${formattedStartDate} at ${formattedStartTime}\n` +
-                              `- Return: ${endDay}, ${formattedEndDate} at ${formattedEndTime}\n\n` +
-                              `Locations:\n` +
-                              `- Pickup: ${recentBooking.pickupLocation}\n` +
-                              `- Return: ${recentBooking.returnLocation}\n\n` +
-                              `Total Cost: Kshs ${recentBooking.totalCost}\n\n` +
-                              (recentBooking.carImageUrl ? `Car Image: ${recentBooking.carImageUrl}\n\n` : '') +
-                              `Can we discuss the details?`;
-        
-                // Optional: Display the message in the modal (if you have an element with id 'bookingDetails')
-                if (document.getElementById('bookingDetails')) {
-                    document.getElementById('bookingDetails').textContent = message;
-                }
-        
+                            `I would like to confirm my booking for the ${recentBooking.carMake} ${recentBooking.carModel}.\n\n` +
+                            `Booking ID: ${recentBooking.id}\n\n` +
+                            `Dates:\n` +
+                            `- Pickup: ${startDay}, ${formattedStartDate} at ${formattedStartTime}\n` +
+                            `- Return: ${endDay}, ${formattedEndDate} at ${formattedEndTime}\n\n` +
+                            `Locations:\n` +
+                            `- Pickup: ${recentBooking.pickupLocation}\n` +
+                            `- Return: ${recentBooking.returnLocation}\n\n` +
+                            `Total Cost: Kshs ${recentBooking.totalCost}\n\n` +
+                            (recentBooking.carImageUrl ? `Car Image: ${recentBooking.carImageUrl}\n\n` : '') +
+                            `Can we discuss the details?`;
+
                 // Encode the message for the WhatsApp URL
                 var encodedMessage = encodeURIComponent(message);
                 var whatsappUrl = `https://wa.me/${recentBooking.listerWhatsApp}?text=${encodedMessage}`;
-        
+
                 // Initialize and show the modal as static
                 var myModal = new bootstrap.Modal(document.getElementById('bookingModal'), {
                     backdrop: 'static',
                     keyboard: false
                 });
                 myModal.show();
-        
+
                 // Detect if the device is a desktop or mobile
                 var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
-                setTimeout(function() {
-                    if (isMobile) {
-                        // On mobile, open WhatsApp directly in the same tab
+
+                if (isMobile) {
+                    // On mobile, redirect directly after a short delay
+                    setTimeout(function() {
                         window.location.href = whatsappUrl;
-                    } else {
-                        // On desktop, open WhatsApp Web in a new tab and keep user on the site
-                        window.open(whatsappUrl, '_blank');
-                    }
-                    // Close the modal after opening the new tab
-                    myModal.hide();
-                }, 5000);
+                        myModal.hide();
+                    }, 3000);
+                } else {
+                    // On desktop, attempt window.open and provide a fallback
+                    setTimeout(function() {
+                        // Try to open WhatsApp in a new tab
+                        var popup = window.open(whatsappUrl, '_blank');
+                        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                            // Pop-up was blocked, show fallback
+                            document.getElementById('spinner-border').style.display = 'none';
+                            document.getElementById('fallbackMessage').style.display = 'block';
+                            var whatsappButton = document.getElementById('whatsappButton');
+                            whatsappButton.href = whatsappUrl;
+                            whatsappButton.style.display = 'inline-block';
+                        } else {
+                            // Pop-up succeeded, close modal
+                            myModal.hide();
+                        }
+                    }, 3000);
+                }
             });
         </script>
     {% endif %}
