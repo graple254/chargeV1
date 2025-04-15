@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-hsge4gs^c%=t=i9^p)6u_=u!5$xunfgvw1&2jajzv7k8kcvk2w'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*', 'www.ccharge.club', 'ccharge.club']
 
