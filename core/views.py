@@ -76,34 +76,54 @@ def send_verification_code(request):
 
     return JsonResponse({"status": False, "error": "Invalid request"})
 
+import time
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
 def verify_email_code(request):
-    """Checks if the entered code matches the stored code."""
-    if request.method == "POST":
-        code_entered = request.POST.get("code")
-        stored_code = request.session.get("email_verification_code")
-        timestamp = request.session.get("email_verification_timestamp")
+    """Verifies the email code entered by the user against the stored code."""
+    if request.method != "POST":
+        logger.warning("Invalid request method: %s", request.method)
+        return JsonResponse({"status": False, "error": "Invalid request method."}, status=405)
 
-        if not stored_code or not timestamp:
-            return JsonResponse({"status": False, "error": "No verification code found. Request a new one."})
+    code_entered = request.POST.get("code")
+    stored_code = request.session.get("email_verification_code")
+    timestamp = request.session.get("email_verification_timestamp")
+    email = request.session.get("email_verification_address")
 
-        # Check if the code is expired (5-minute limit)
-        if time.time() - timestamp > 300:  # 5 minutes = 300 seconds
-            for key in ["email_verification_code", "email_verification_address", "email_verification_timestamp"]:
-                if key in request.session:
-                    del request.session[key]
-            return JsonResponse({"status": False, "error": "Verification code has expired. Request a new one."})
+    # Validate input
+    if not code_entered:
+        logger.warning("No code provided in request.")
+        return JsonResponse({"status": False, "error": "Please enter a verification code."}, status=400)
 
-        if stored_code == code_entered:
-            request.session["verified_email"] = request.session["email_verification_address"]
-            # Clear verification session data after successful verification
-            for key in ["email_verification_code", "email_verification_address", "email_verification_timestamp"]:
-                if key in request.session:
-                    del request.session[key]
-            return JsonResponse({"status": True, "message": "Email verified successfully!"})
+    # Check if verification data exists
+    if not stored_code or not timestamp or not email:
+        logger.error("Missing session data: code=%s, timestamp=%s, email=%s", stored_code, timestamp, email)
+        return JsonResponse({"status": False, "error": "No verification code found. Please request a new one."}, status=400)
 
-        return JsonResponse({"status": False, "error": "Invalid verification code"})
+    # Check if the code is expired (10-minute limit)
+    if time.time() - float(timestamp) > 600:  # 10 minutes = 600 seconds
+        logger.info("Verification code expired for email: %s", email)
+        # Clean up session
+        session_keys = ["email_verification_code", "email_verification_address", "email_verification_timestamp"]
+        for key in session_keys:
+            request.session.pop(key, None)
+        return JsonResponse({"status": False, "error": "Verification code has expired. Please request a new one."}, status=400)
 
-    return JsonResponse({"status": False, "error": "Invalid request"})
+    # Verify the code
+    if stored_code == code_entered:
+        logger.info("Successful email verification for: %s", email)
+        request.session["verified_email"] = email
+        # Clean up session
+        session_keys = ["email_verification_code", "email_verification_address", "email_verification_timestamp"]
+        for key in session_keys:
+            request.session.pop(key, None)
+        return JsonResponse({"status": True, "message": "Email verified successfully!"}, status=200)
+
+    logger.warning("Invalid code entered for email: %s", email)
+    return JsonResponse({"status": False, "error": "Invalid verification code."}, status=400)
 
 
 

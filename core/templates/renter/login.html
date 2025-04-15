@@ -295,7 +295,7 @@
     <script>
         // Get the 'next' URL from context
         const nextUrl = "{{ next|escapejs }}";
-
+    
         // Set up CSRF token for AJAX requests
         $(document).ready(function() {
             $.ajaxSetup({
@@ -305,7 +305,7 @@
                     }
                 }
             });
-
+    
             // Role selection logic
             $('.role-card').on('click', function() {
                 $('.role-card').removeClass('border-primary shadow');
@@ -313,10 +313,10 @@
                 const selectedRole = $(this).data('role');
                 $('#signupRole').val(selectedRole);
             });
-
+    
             // Set default selection (Renter)
             $('.role-card[data-role="RENTER"]').addClass('border-primary shadow');
-
+    
             // Check if user is authenticated and has a profile on page load
             $.ajax({
                 url: "{% url 'check_auth_status' %}",
@@ -342,7 +342,7 @@
                 }
             });
         });
-
+    
         function getCSRFToken() {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -357,44 +357,42 @@
             }
             return cookieValue;
         }
-
+    
         // State management
         function showAuthInitial() {
             hideAllSections();
             $('#authInitial').show();
         }
-
+    
         function showLoginForm() {
             hideAllSections();
             $('#loginForm').show();
         }
-
+    
         function showEmailVerification() {
             hideAllSections();
             $('#emailVerification').show();
         }
-
+    
         function showCodeVerification() {
             hideAllSections();
             $('#codeVerification').show();
         }
-
+    
         function showSignupForm() {
             hideAllSections();
             $('#signupForm').show();
         }
-
-        // Modified showProfileCreationForm function
+    
         function showProfileCreationForm() {
             hideAllSections();
             const role = $('#profileRole').val();
             const renterFields = $('#renterFields input');
             const listerFields = $('#listerFields input');
-
+    
             if (role === 'renter') {
                 $('#renterFields').show();
                 $('#listerFields').hide();
-                // Require only WhatsApp number and age for renters
                 $('#profileWhatsappNumber').prop('required', true);
                 $('#profileAge').prop('required', true);
                 $('#idImage').prop('required', false);
@@ -408,6 +406,7 @@
             }
             $('#profileCreationForm').show();
         }
+    
         function hideAllSections() {
             $('#authInitial').hide();
             $('#loginForm').hide();
@@ -417,12 +416,12 @@
             $('#profileCreationForm').hide();
             $('#authMessages').empty();
         }
-
+    
         function showMessage(message, type = 'success') {
             const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
             $('#authMessages').html(`<div class="alert ${alertClass}">${message}</div>`);
         }
-
+    
         // Modal control functions
         function showRedirectionModal(message) {
             $('#redirectionMessage').text(message);
@@ -431,15 +430,24 @@
                 keyboard: false
             });
             modal.show();
+            // Fallback to hide modal after 10 seconds to prevent hanging
+            setTimeout(function() {
+                hideRedirectionModal();
+                showMessage("Operation timed out. Please try again.", 'error');
+            }, 10000);
         }
-
+    
         function hideRedirectionModal() {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('redirectionModal'));
-            if (modal) {
-                modal.hide();
-            }
+            const modalElement = document.getElementById('redirectionModal');
+            const modal = bootstrap.Modal.getInstance(modalElement) || bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.hide();
+            // Ensure modal is fully removed from DOM
+            modalElement.addEventListener('hidden.bs.modal', function handler() {
+                modal.dispose();
+                modalElement.removeEventListener('hidden.bs.modal', handler);
+            }, { once: true });
         }
-
+    
         // Profile success modal function
         function showProfileSuccessModal() {
             const modal = new bootstrap.Modal(document.getElementById('profileSuccessModal'), {
@@ -449,15 +457,15 @@
             modal.show();
             setTimeout(function() {
                 window.location.href = nextUrl;
-            }, 3000); // 3-second delay before redirection
+            }, 3000);
         }
-
+    
         // Form handlers
         function handleLogin(event) {
             event.preventDefault();
             showRedirectionModal("Logging in...");
             const formData = new FormData(document.getElementById('loginFormElement'));
-
+    
             $.ajax({
                 url: "{% url 'login' %}",
                 type: "POST",
@@ -498,13 +506,13 @@
                 }
             });
         }
-
+    
         function handleEmailVerification(event) {
             event.preventDefault();
             showRedirectionModal("Sending verification code...");
             const formData = new FormData(document.getElementById('emailVerificationForm'));
             const email = formData.get('email');
-
+    
             $.ajax({
                 url: "{% url 'send_verification_code' %}",
                 type: "POST",
@@ -530,12 +538,12 @@
                 }
             });
         }
-
+    
         function handleCodeVerification(event) {
             event.preventDefault();
             showRedirectionModal("Verifying code...");
             const formData = new FormData(document.getElementById('codeVerificationForm'));
-
+    
             $.ajax({
                 url: "{% url 'verify_email_code' %}",
                 type: "POST",
@@ -543,29 +551,45 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    hideRedirectionModal();
                     console.log("handleCodeVerification response:", response);
-                    if (response.status === true) {
-                        showMessage(response.message);
-                        showSignupForm();
-                    } else {
-                        showMessage(response.error, 'error');
-                    }
+                    // Hide modal and wait for it to fully close
+                    const modalElement = document.getElementById('redirectionModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement) || bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.hide();
+                    modalElement.addEventListener('hidden.bs.modal', function handler() {
+                        modal.dispose();
+                        if (response.status === true) {
+                            showMessage(response.message);
+                            showSignupForm();
+                        } else {
+                            showMessage(response.error, 'error');
+                            showCodeVerification();
+                        }
+                        modalElement.removeEventListener('hidden.bs.modal', handler);
+                    }, { once: true });
                 },
                 error: function(xhr, status, error) {
-                    hideRedirectionModal();
                     console.log("handleCodeVerification error:", xhr, status, error);
-                    showMessage("An error occurred. Please try again.", 'error');
+                    // Hide modal on error
+                    const modalElement = document.getElementById('redirectionModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement) || bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.hide();
+                    modalElement.addEventListener('hidden.bs.modal', function handler() {
+                        modal.dispose();
+                        showMessage("An error occurred: " + (xhr.responseJSON ? xhr.responseJSON.error || "Please try again" : error), 'error');
+                        showCodeVerification();
+                        modalElement.removeEventListener('hidden.bs.modal', handler);
+                    }, { once: true });
                 }
             });
         }
-
+    
         function handleSignup(event) {
             event.preventDefault();
             showRedirectionModal("Signing up...");
             const formData = new FormData(document.getElementById('signupFormElement'));
             const selectedRole = formData.get('role');
-
+    
             $.ajax({
                 url: "{% url 'signup' %}",
                 type: "POST",
@@ -596,7 +620,7 @@
                 }
             });
         }
-
+    
         function handleProfileCreation(event) {
             event.preventDefault();
             showRedirectionModal("Creating profile...");
@@ -604,10 +628,10 @@
             const formData = new FormData(form);
             const role = formData.get('role');
             const url = role === 'renter' ? "{% url 'create_profile' %}" : "{% url 'update_lister_profile' %}";
-
+    
             console.log("Form Data:", Array.from(formData.entries()));
             console.log("URL:", url);
-
+    
             $.ajax({
                 url: url,
                 type: "POST",
@@ -636,3 +660,5 @@
     </script>
 </body>
 </html>
+
+
