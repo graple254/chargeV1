@@ -213,21 +213,22 @@
                     <div id="renterFields" style="display: none;">
                         <div class="mb-3">
                             <label for="profileWhatsappNumber" class="form-label">WhatsApp Number (e.g., +2547XXXXXXXX)</label>
-                            <input type="tel" class="form-control" id="profileWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX">
+                            <input type="tel" class="form-control" id="profileWhatsappNumber" name="whatsapp_number" placeholder="+2547XXXXXXXX" required>
                         </div>
                         <div class="mb-3">
                             <label for="profileAge" class="form-label">Age</label>
-                            <input type="number" class="form-control" id="profileAge" name="age" min="18" max="120">
+                            <input type="number" class="form-control" id="profileAge" name="age" min="18" max="120" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3" style="display: none;">
                             <label for="idImage" class="form-label">ID Image</label>
                             <input type="file" class="form-control" id="idImage" name="id_image" accept="image/*">
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3" style="display: none;">
                             <label for="drivingLicenseImage" class="form-label">Driving License Image</label>
                             <input type="file" class="form-control" id="drivingLicenseImage" name="driving_license_image" accept="image/*">
                         </div>
                     </div>
+
 
                     <!-- Lister-specific fields (shown when role is 'lister') -->
                     <div id="listerFields" style="display: none;">
@@ -383,6 +384,7 @@
             $('#signupForm').show();
         }
 
+        // Modified showProfileCreationForm function
         function showProfileCreationForm() {
             hideAllSections();
             const role = $('#profileRole').val();
@@ -392,7 +394,11 @@
             if (role === 'renter') {
                 $('#renterFields').show();
                 $('#listerFields').hide();
-                renterFields.prop('required', true);
+                // Require only WhatsApp number and age for renters
+                $('#profileWhatsappNumber').prop('required', true);
+                $('#profileAge').prop('required', true);
+                $('#idImage').prop('required', false);
+                $('#drivingLicenseImage').prop('required', false);
                 listerFields.prop('required', false);
             } else if (role === 'lister') {
                 $('#renterFields').hide();
@@ -402,7 +408,6 @@
             }
             $('#profileCreationForm').show();
         }
-
         function hideAllSections() {
             $('#authInitial').hide();
             $('#loginForm').hide();

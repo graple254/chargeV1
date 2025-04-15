@@ -41,8 +41,8 @@ class User(AbstractUser):
 
 class RenterProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='renter_profile')
-    id_image = models.ImageField(upload_to='id_images/')
-    driving_license_image = models.ImageField(upload_to='license_images/')
+    id_image = models.ImageField(upload_to='id_images/', null=True, blank=True)
+    driving_license_image = models.ImageField(upload_to='license_images/', null=True, blank=True)
     whatsapp_number = models.CharField(max_length=15, blank=True, null=True)
     age = models.PositiveIntegerField(blank=True, null=True)
 

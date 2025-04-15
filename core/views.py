@@ -1002,7 +1002,6 @@ def renter_profile(request):
     })
 
 
-
 @csrf_exempt
 @login_required
 def create_renter_profile(request):
@@ -1020,13 +1019,27 @@ def create_renter_profile(request):
         whatsapp_number = request.POST.get("whatsapp_number")
         age = request.POST.get("age")
 
-        # Validate required fields
-        if not id_image or not driving_license_image or not age:
-            return JsonResponse({"success": False, "message": "All required fields must be filled."}, status=400)
+        # Log received data
+        print(f"Received data - whatsapp_number: {whatsapp_number}, age: {age}")
 
-        # Save images properly
-        id_image_path = default_storage.save(f"id_images/{id_image.name}", id_image)
-        license_image_path = default_storage.save(f"license_images/{driving_license_image.name}", driving_license_image)
+        # Validate required fields
+        if not age:
+            return JsonResponse({"success": False, "message": "Age is required."}, status=400)
+
+        # Validate WhatsApp number format (optional)
+        import re
+        if whatsapp_number and not re.match(r"^\+\d{10,15}$", whatsapp_number):
+            return JsonResponse({"success": False, "message": "Invalid WhatsApp number format."}, status=400)
+
+        # Save images if they exist
+        id_image_path = None
+        license_image_path = None
+
+        if id_image:
+            id_image_path = default_storage.save(f"id_images/{id_image.name}", id_image)
+
+        if driving_license_image:
+            license_image_path = default_storage.save(f"license_images/{driving_license_image.name}", driving_license_image)
 
         # Create profile
         renter_profile = RenterProfile.objects.create(
@@ -1045,6 +1058,7 @@ def create_renter_profile(request):
         })
 
     return JsonResponse({"success": False, "message": "Invalid request method."}, status=405)
+
 
 
 @login_required

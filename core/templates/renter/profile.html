@@ -1,155 +1,62 @@
 {% extends 'renter/base_renter.html' %}
-{% block title %}Profile{% endblock %}
+{% block title %}Renter Profile{% endblock %}
 {% block content %}
+
 <div class="container px-4 py-5 mb-5">
-    <!-- Header Section -->
-    <div class="bg-light rounded-3 p-4 mb-4 text-center">
-        <h1 class="display-5 fw-bold mb-2">{{ user.username }}'s Profile</h1>
-        <p class="lead mb-0">
-            <span class="badge {% if profile.verification_status == 'VERIFIED' %}bg-success{% elif profile.verification_status == 'PENDING' %}bg-warning{% else %}bg-danger{% endif %}">
-                {{ profile.verification_status }}
-            </span>
-        </p>
+    <!-- Profile Header -->
+    <div class="text-center mb-5">
+        <h1 class="display-6 fw-bold">{{ user.username }}'s Profile</h1>
+        <p class="text-muted mb-1">{{ user.email }}</p>
+        <span class="badge rounded-pill px-3 py-2 
+            {% if profile.verification_status == 'VERIFIED' %}
+                bg-success
+            {% elif profile.verification_status == 'PENDING' %}
+                bg-warning text-dark
+            {% else %}
+                bg-danger
+            {% endif %}
+        ">
+            {{ profile.verification_status|title }}
+        </span>
     </div>
 
-    {% if user.is_authenticated %}
-        {% if profile %}
-            <!-- Tabbed Interface -->
-            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">
-                        Profile Info
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="false">
-                        Documents
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="false">
-                        Activity
-                    </button>
-                </li>
-            </ul>
-
-            <!-- Tab Content -->
-            <div class="tab-content" id="profileTabContent">
-                <!-- Profile Info Tab -->
-                <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Personal Information</h5>
-                            <div class="row">
-                                <div class="col-12 col-md-6">
-                                    <p class="mb-2"><strong>Username:</strong> {{ user.username }}</p>
-                                    <p class="mb-2"><strong>Email:</strong> {{ user.email }}</p>
-                                    <p class="mb-2"><strong>Phone Number:</strong> {{ user.phone_number|default:"Not provided" }}</p>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <p class="mb-2"><strong>WhatsApp Number:</strong> {{ profile.whatsapp_number|default:"Not provided" }}</p>
-                                    <p class="mb-2"><strong>Age:</strong> {{ profile.age|default:"Not provided" }}</p>
-                                    <p class="mb-2">
-                                        <strong>Verification Status:</strong>
-                                        <span class="badge {% if profile.verification_status == 'VERIFIED' %}bg-success{% elif profile.verification_status == 'PENDING' %}bg-warning{% else %}bg-danger{% endif %}">
-                                            {{ profile.verification_status }}
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Profile Info Card -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <h5 class="card-title mb-4 text-primary fw-bold">Personal Information</h5>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <p class="mb-2"><strong>Username:</strong> {{ user.username }}</p>
+                    <p class="mb-2"><strong>Email:</strong> {{ user.email }}</p>
+                    <p class="mb-2"><strong>Phone Number:</strong> {{ user.phone_number|default:"Not provided" }}</p>
                 </div>
-
-                <!-- Documents Tab -->
-                <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Uploaded Documents</h5>
-                            <div class="row">
-                                <!-- ID Image -->
-                                <div class="col-12 col-md-6 mb-4">
-                                    <h6 class="fw-bold mb-2">ID Image</h6>
-                                    {% if profile.id_image %}
-                                        <img src="{{ profile.id_image.url }}" alt="ID Image" class="img-fluid rounded mb-2" style="max-width: 250px; max-height: 180px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#idImageModal">
-                                        <!-- Modal for ID Image -->
-                                        <div class="modal fade" id="idImageModal" tabindex="-1" aria-labelledby="idImageModalLabel" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="idImageModalLabel">ID Image</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body text-center">
-                                                        <img src="{{ profile.id_image.url }}" alt="ID Image" class="img-fluid rounded">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        <p class="text-muted">No ID image uploaded.</p>
-                                    {% endif %}
-                                </div>
-                                <!-- Driving License Image -->
-                                <div class="col-12 col-md-6 mb-4">
-                                    <h6 class="fw-bold mb-2">Driving License Image</h6>
-                                    {% if profile.driving_license_image %}
-                                        <img src="{{ profile.driving_license_image.url }}" alt="Driving License Image" class="img-fluid rounded mb-2" style="max-width: 250px; max-height: 180px; object-fit: cover;" data-bs-toggle="modal" data-bs-target="#licenseImageModal">
-                                        <!-- Modal for Driving License Image -->
-                                        <div class="modal fade" id="licenseImageModal" tabindex="-1" aria-labelledby="licenseImageModalLabel" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="licenseImageModalLabel">Driving License Image</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body text-center">
-                                                        <img src="{{ profile.driving_license_image.url }}" alt="Driving License Image" class="img-fluid rounded">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        <p class="text-muted">No driving license image uploaded.</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Activity Tab -->
-                <div class="tab-pane fade" id="activity" role="tabpanel" aria-labelledby="activity-tab">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Your Activity</h5>
-                            <div class="row text-center">
-                                <div class="col-12 col-md-4 mb-3">
-                                    <div class="p-3 bg-light rounded-3">
-                                        <h6 class="fw-bold">Total Bookings</h6>
-                                        <p class="fs-4 mb-0">{{ user.bookings.count }}</p>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-4 mb-3">
-                                    <div class="p-3 bg-light rounded-3">
-                                        <h6 class="fw-bold">Completed Trips</h6>
-                                        <p class="fs-4 mb-0">{{ user.bookings.count }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-md-6">
+                    <p class="mb-2"><strong>WhatsApp Number:</strong> {{ profile.whatsapp_number|default:"Not provided" }}</p>
+                    <p class="mb-2"><strong>Age:</strong> {{ profile.age|default:"Not provided" }}</p>
+                    <p class="mb-2"><strong>Verification Status:</strong> 
+                        <span class="badge 
+                            {% if profile.verification_status == 'VERIFIED' %}
+                                bg-success
+                            {% elif profile.verification_status == 'PENDING' %}
+                                bg-warning text-dark
+                            {% else %}
+                                bg-danger
+                            {% endif %}
+                        ">
+                            {{ profile.verification_status }}
+                        </span>
+                    </p>
                 </div>
             </div>
-        {% else %}
-            <div class="alert alert-info text-center" role="alert">
-                No profile found. Please create a profile.
-            </div>
-        {% endif %}
-    {% else %}
-        <div class="alert alert-warning text-center" role="alert">
-            Please <a href="{% url 'login' %}?next={% url 'renter_profile' %}" class="alert-link">log in</a> to view your profile.
+        </div>
+    </div>
+
+    <!-- CTA if profile isn't verified -->
+    {% if profile.verification_status != "VERIFIED" %}
+        <div class="alert alert-info mt-4 text-center" role="alert">
+            Your profile is not fully verified yet, but you can still proceed to book or reserve cars without any issues.
         </div>
     {% endif %}
 </div>
+
 {% endblock %}
